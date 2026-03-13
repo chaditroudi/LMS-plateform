@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, use } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { courses } from "@/lib/data";
 
-export default function CourseDetailPage({ params }: { params: { id: string } }) {
-  const course = courses.find((c) => c.id === params.id);
+export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const course = courses.find((c) => c.id === id);
   const [openSection, setOpenSection] = useState<string | null>("s1");
   const [enrolled, setEnrolled] = useState(false);
 

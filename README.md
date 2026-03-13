@@ -1,6 +1,6 @@
 # LearnHub - Learning Management System (LMS)
 
-A full-featured Learning Management System built with **Next.js 14**, **TypeScript**, and **Tailwind CSS**.
+A full-featured Learning Management System built with **Next.js 15**, **TypeScript**, and **Tailwind CSS**.
 
 ## Features
 
@@ -13,7 +13,7 @@ A full-featured Learning Management System built with **Next.js 14**, **TypeScri
 
 ## Tech Stack
 
-- [Next.js 14](https://nextjs.org/) (App Router)
+- [Next.js 15](https://nextjs.org/) (App Router)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - Static mock data (no backend required)
