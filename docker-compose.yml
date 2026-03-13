@@ -13,6 +13,7 @@ services:
       - course-service
       - user-service
       - ai-tutor-service
+      - analytics-service
     networks:
       - lms-network
     restart: unless-stopped
@@ -87,6 +88,25 @@ services:
       - DATABASE_URL=postgresql://lms_user:lms_password@postgres:5432/lms_courses
       - REDIS_URL=redis://redis:6379/2
       - LLM_MODEL=llama2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+  # Analytics Service - FastAPI
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://lms_user:lms_password@postgres:5432/lms_courses
+      - REDIS_URL=redis://redis:6379/3
     depends_on:
       postgres:
         condition: service_healthy
