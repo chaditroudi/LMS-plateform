@@ -309,3 +309,10 @@ export const enrolledCourses = [
   { courseId: "2", progress: 30, lastAccessed: "2024-01-14" },
   { courseId: "3", progress: 90, lastAccessed: "2024-01-13" },
 ];
+
+export const recentActivity = [
+  { action: "Completed lesson", detail: "CSS Selectors", course: "Complete Web Development Bootcamp", time: "2 hours ago" },
+  { action: "Started section", detail: "Data Analysis with Pandas", course: "Python for Data Science", time: "1 day ago" },
+  { action: "Completed quiz", detail: "Design Principles Quiz", course: "UI/UX Design Masterclass", time: "2 days ago" },
+  { action: "Earned certificate", detail: "HTML Fundamentals", course: "Complete Web Development Bootcamp", time: "3 days ago" },
+];

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import ProgressBar from "@/components/ProgressBar";
-import { courses, enrolledCourses } from "@/lib/data";
+import { courses, enrolledCourses, recentActivity } from "@/lib/data";
 
 export default function DashboardPage() {
   const myCoursesData = enrolledCourses.map((e) => ({
@@ -12,13 +12,6 @@ export default function DashboardPage() {
   const totalProgress = Math.round(
     myCoursesData.reduce((sum, e) => sum + e.progress, 0) / myCoursesData.length
   );
-
-  const recentActivity = [
-    { action: "Completed lesson", detail: "CSS Selectors", course: "Complete Web Development Bootcamp", time: "2 hours ago" },
-    { action: "Started section", detail: "Data Analysis with Pandas", course: "Python for Data Science", time: "1 day ago" },
-    { action: "Completed quiz", detail: "Design Principles Quiz", course: "UI/UX Design Masterclass", time: "2 days ago" },
-    { action: "Earned certificate", detail: "HTML Fundamentals", course: "Complete Web Development Bootcamp", time: "3 days ago" },
-  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
