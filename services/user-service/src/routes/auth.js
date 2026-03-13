@@ -18,14 +18,15 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, name, role } = req.body;
+    const { email, password, name } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
-    const user = new User({ email, password, name, role: role || 'student' });
+    // Role is always 'student' on self-registration to prevent privilege escalation
+    const user = new User({ email, password, name, role: 'student' });
     await user.save();
 
     const token = jwt.sign(
