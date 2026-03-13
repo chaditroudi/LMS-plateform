@@ -47,12 +47,13 @@ const courseData: Record<number, any> = {
   },
 };
 
-export default function CourseDetailPage({
+export default async function CourseDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const courseId = parseInt(params.id);
+  const { id } = await params;
+  const courseId = parseInt(id);
   const course = courseData[courseId];
 
   if (!course) {

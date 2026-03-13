@@ -92,12 +92,13 @@ Create variables of each type and experiment with type conversions.`,
   },
 };
 
-export default function LessonPage({
+export default async function LessonPage({
   params,
 }: {
-  params: { id: string; lessonId: string };
+  params: Promise<{ id: string; lessonId: string }>;
 }) {
-  const lessonId = parseInt(params.lessonId);
+  const { lessonId: lessonIdStr } = await params;
+  const lessonId = parseInt(lessonIdStr);
   const lesson = lessonData[lessonId];
 
   if (!lesson) {
