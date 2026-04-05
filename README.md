@@ -50,6 +50,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser. The page hot-reloads whenever you edit a source file.
 
+## Running with Docker
+
+Make sure [Docker](https://docs.docker.com/get-docker/) is installed, then:
+
+### 1. Build the image
+
+```bash
+docker build -t lms-platform .
+```
+
+### 2. Run the container
+
+```bash
+docker run -p 3000:3000 lms-platform
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+To use a different host port (e.g. 8080): `docker run -p 8080:3000 lms-platform`
+
 ## Running in Production
 
 ### 1. Build an optimized production bundle
