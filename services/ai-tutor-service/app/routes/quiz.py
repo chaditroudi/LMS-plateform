@@ -1,3 +1,23 @@
+"""
+Quiz Generation Route — POST /api/ai/quiz/generate
+
+Generates multiple-choice quiz questions for a given course or lesson.
+The number of questions is configurable (default 5, up to the number of
+available sample questions).
+
+Request body  : QuizGenerateRequest { course_id, lesson_id?, num_questions }
+Response body : QuizResponse        { course_id, lesson_id, questions[] }
+
+Each question includes:
+  - question    : The question text.
+  - options     : List of QuizOption (label A–D, text, is_correct flag).
+  - explanation : Brief explanation of the correct answer.
+
+In production this endpoint uses an LLM to generate questions dynamically
+based on the actual lesson content. The current implementation returns a
+fixed set of sample questions for demonstration purposes.
+"""
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,24 +26,32 @@ router = APIRouter()
 
 
 class QuizGenerateRequest(BaseModel):
+    """Request body for quiz generation."""
+
     course_id: int
-    lesson_id: Optional[int] = None
+    lesson_id: Optional[int] = None  # Scope to a specific lesson when provided
     num_questions: int = 5
 
 
 class QuizOption(BaseModel):
-    label: str
+    """A single multiple-choice option for a quiz question."""
+
+    label: str       # e.g. "A", "B", "C", "D"
     text: str
     is_correct: bool = False
 
 
 class QuizQuestion(BaseModel):
+    """A single quiz question with its options and explanation."""
+
     question: str
     options: List[QuizOption]
-    explanation: str
+    explanation: str  # Shown to the learner after they answer
 
 
 class QuizResponse(BaseModel):
+    """Response body containing the generated quiz."""
+
     course_id: int
     lesson_id: Optional[int] = None
     questions: List[QuizQuestion]

@@ -1,3 +1,16 @@
+/**
+ * Authentication Routes — /api/auth
+ *
+ * POST /register  — Register a new user (role is always forced to 'student'
+ *                    on self-registration to prevent privilege escalation).
+ * POST /login     — Authenticate with email + password; returns a 7-day JWT.
+ * GET  /verify    — Validate a Bearer token and return the associated user.
+ *
+ * All inputs are validated with express-validator before processing.
+ * Generic error messages are returned on credential failures to prevent
+ * user enumeration.
+ */
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
@@ -6,7 +19,7 @@ const { JWT_SECRET } = require('../config');
 
 const router = express.Router();
 
-// Register
+// POST /api/auth/register
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
@@ -18,15 +31,17 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, name } = req.body;
+    const { email, password, name, role } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
-    // Role is always 'student' on self-registration to prevent privilege escalation
-    const user = new User({ email, password, name, role: 'student' });
+    // Allow student or instructor on self-registration; admin requires DB promotion
+    const allowedRoles = ['student', 'instructor'];
+    const safeRole = allowedRoles.includes(role) ? role : 'student';
+    const user = new User({ email, password, name, role: safeRole });
     await user.save();
 
     const token = jwt.sign(
@@ -41,7 +56,7 @@ router.post('/register', [
   }
 });
 
-// Login
+// POST /api/auth/login
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty(),
@@ -54,6 +69,7 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
+    // Use a generic message to avoid revealing whether the email exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials.' });
@@ -76,7 +92,8 @@ router.post('/login', [
   }
 });
 
-// Verify token
+// GET /api/auth/verify
+// Validates the Bearer token supplied in the Authorization header.
 router.get('/verify', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

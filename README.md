@@ -43,7 +43,7 @@ Plateforme de gestion d'apprentissage en ligne (Learning Management System) cons
 | **User Service** | Node.js, Express, MongoDB | `8002` | Authentification JWT, profils utilisateurs |
 | **Analytics Service** | FastAPI, SQLAlchemy, PostgreSQL | `8003` | Suivi des vues, inscriptions et tendances |
 | **AI Tutor Service** | FastAPI, LLM (Llama2) | `8004` | Tuteur intelligent et aide contextuelle |
-| **n8n** | n8n Automation | `5678` | Workflows d'automatisation (feedback) |
+| **n8n** | n8n Automation | `5680` | Workflows d'automatisation (feedback) |
 | **Nginx** | Nginx Alpine | `80` | API Gateway / Reverse proxy |
 
 ## 🛠️ Stack technique
@@ -85,7 +85,7 @@ docker compose ps
 | User API | http://localhost:8002 |
 | Analytics API | http://localhost:8003/docs |
 | AI Tutor API | http://localhost:8004/docs |
-| n8n Dashboard | http://localhost:5678 |
+| n8n Dashboard | http://localhost:5680 |
 
 ## 📡 Points d'accès API
 

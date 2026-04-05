@@ -1,3 +1,25 @@
+"""
+Course Service — FastAPI Application
+
+Microservice responsible for managing the full course lifecycle:
+  - Courses      : CRUD operations and search/filter
+  - Lessons      : Ordered lesson content within a course
+  - Enrollments  : Enroll users in courses and track per-lesson progress
+  - Reviews      : One review per user per course (rating 1–5 + comment)
+
+Service Port   : 8001 (configured in docker-compose.yml)
+Database       : PostgreSQL (SQLAlchemy ORM, auto-migrated on startup)
+API Prefix     : /api/courses
+Documentation  : http://localhost:8001/docs  (Swagger UI, auto-generated)
+
+Routes summary:
+  /api/courses                          — courses router
+  /api/courses/{id}/lessons             — lessons router
+  /api/courses/{id}/enroll              — enrollments router
+  /api/courses/{id}/reviews             — reviews router
+  /health                               — liveness probe
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -31,4 +53,5 @@ app.include_router(reviews.router, prefix="/api/courses", tags=["reviews"])
 
 @app.get("/health")
 def health_check():
+    """Liveness probe used by Docker and nginx."""
     return {"status": "ok", "service": "course-service"}

@@ -1,4 +1,21 @@
+/**
+ * Root Layout — Next.js App Router
+ *
+ * Wraps every page in the application with the shared Chrome:
+ *   - <Navbar />  — Top navigation bar with auth-aware links.
+ *   - <main>      — Page content outlet.
+ *   - <footer>    — Site-wide footer.
+ *
+ * Global CSS (Tailwind base styles) is imported here so it applies
+ * to all routes without each page needing to import it separately.
+ *
+ * Metadata exported from this file sets the default <title> and
+ * <meta name="description"> for every page unless overridden.
+ */
+
 import type { Metadata } from "next";
+import React from "react";
+import Navbar from "./components/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,37 +29,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <nav className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <a href="/" className="text-xl font-bold text-indigo-600">
-                📚 LMS Platform
-              </a>
-              <div className="flex items-center space-x-4">
-                <a href="/courses" className="text-gray-700 hover:text-indigo-600 transition-colors">
-                  Courses
-                </a>
-                <a href="/dashboard" className="text-gray-700 hover:text-indigo-600 transition-colors">
-                  Dashboard
-                </a>
-                <a
-                  href="/auth/login"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Sign In
-                </a>
-              </div>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-background font-sans">
+        <div className="relative flex min-h-screen flex-col">
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <footer className="border-t bg-muted/50">
+            <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm text-muted-foreground">
+              &copy; 2026 LMS Platform. Master DevOps &amp; Cloud - M1.
             </div>
-          </div>
-        </nav>
-        <main>{children}</main>
-        <footer className="bg-gray-50 border-t mt-16">
-          <div className="max-w-7xl mx-auto px-4 py-8 text-center text-gray-500 text-sm">
-            © 2024 LMS Platform. Master DevOps & Cloud - M1.
-          </div>
-        </footer>
+          </footer>
+        </div>
       </body>
     </html>
   );

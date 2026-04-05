@@ -1,10 +1,32 @@
+"""
+Pydantic Schemas — Course Service
+
+Defines the request/response contracts for all course-service endpoints.
+FastAPI uses these schemas to:
+  - Validate and parse incoming JSON request bodies.
+  - Serialise and document outgoing JSON responses.
+
+Schema families:
+  Course*      — CourseBase, CourseCreate, CourseUpdate, CourseResponse,
+                   CourseListResponse
+  Lesson*      — LessonCreate, LessonUpdate, LessonResponse
+  Enrollment*  — EnrollmentCreate, EnrollmentResponse
+  Progress*    — ProgressUpdate, ProgressResponse
+  Review*      — ReviewCreate, ReviewResponse
+"""
+
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
 
+# ---------------------------------------------------------------------------
 # Course schemas
+# ---------------------------------------------------------------------------
+
 class CourseBase(BaseModel):
+    """Shared fields used by both create and response course schemas."""
+
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
@@ -14,10 +36,14 @@ class CourseBase(BaseModel):
 
 
 class CourseCreate(CourseBase):
+    """Request body for creating a new course. Requires instructor_id."""
+
     instructor_id: str
 
 
 class CourseUpdate(BaseModel):
+    """Request body for partially updating a course. All fields are optional."""
+
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -27,6 +53,8 @@ class CourseUpdate(BaseModel):
 
 
 class LessonResponse(BaseModel):
+    """Lesson data embedded in course detail responses."""
+
     id: int
     course_id: int
     title: str
@@ -41,6 +69,8 @@ class LessonResponse(BaseModel):
 
 
 class CourseResponse(CourseBase):
+    """Full course detail response — includes the nested lessons list."""
+
     id: int
     instructor_id: str
     created_at: datetime
@@ -52,6 +82,8 @@ class CourseResponse(CourseBase):
 
 
 class CourseListResponse(CourseBase):
+    """Lightweight course response used in list/search results (no lessons)."""
+
     id: int
     instructor_id: str
     created_at: datetime
@@ -61,8 +93,13 @@ class CourseListResponse(CourseBase):
         from_attributes = True
 
 
+# ---------------------------------------------------------------------------
 # Lesson schemas
+# ---------------------------------------------------------------------------
+
 class LessonCreate(BaseModel):
+    """Request body for adding a lesson to a course."""
+
     title: str
     content: Optional[str] = None
     video_url: Optional[str] = None
@@ -71,6 +108,8 @@ class LessonCreate(BaseModel):
 
 
 class LessonUpdate(BaseModel):
+    """Request body for partially updating a lesson. All fields are optional."""
+
     title: Optional[str] = None
     content: Optional[str] = None
     video_url: Optional[str] = None
@@ -78,12 +117,19 @@ class LessonUpdate(BaseModel):
     duration_minutes: Optional[int] = None
 
 
+# ---------------------------------------------------------------------------
 # Enrollment schemas
+# ---------------------------------------------------------------------------
+
 class EnrollmentCreate(BaseModel):
+    """Request body for enrolling a user in a course."""
+
     user_id: str
 
 
 class EnrollmentResponse(BaseModel):
+    """Enrollment record returned after successful enrollment."""
+
     id: int
     user_id: str
     course_id: int
@@ -93,12 +139,19 @@ class EnrollmentResponse(BaseModel):
         from_attributes = True
 
 
+# ---------------------------------------------------------------------------
 # Progress schemas
+# ---------------------------------------------------------------------------
+
 class ProgressUpdate(BaseModel):
+    """Request body for marking a lesson as complete (or incomplete)."""
+
     completed: bool = True
 
 
 class ProgressResponse(BaseModel):
+    """Progress record returned after an update."""
+
     id: int
     user_id: str
     lesson_id: int
@@ -110,14 +163,21 @@ class ProgressResponse(BaseModel):
         from_attributes = True
 
 
+# ---------------------------------------------------------------------------
 # Review schemas
+# ---------------------------------------------------------------------------
+
 class ReviewCreate(BaseModel):
+    """Request body for submitting a course review."""
+
     user_id: str
-    rating: int = Field(ge=1, le=5)
+    rating: int = Field(ge=1, le=5)  # Rating must be between 1 and 5
     comment: Optional[str] = None
 
 
 class ReviewResponse(BaseModel):
+    """Review record returned after creation or in review listings."""
+
     id: int
     user_id: str
     course_id: int

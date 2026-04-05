@@ -1,3 +1,21 @@
+/**
+ * MongoDB Initialization Script — LMS Platform (User Service)
+ *
+ * Executed automatically by the mongo Docker container on first startup
+ * (file is mounted at /docker-entrypoint-initdb.d/init.js).
+ *
+ * Actions performed:
+ *   1. Switches to (or creates) the "lms_users" database.
+ *   2. Creates the "users" collection with JSON Schema validation to
+ *      enforce required fields and allowed role values at the database level.
+ *   3. Creates a unique index on email for fast lookups and duplicate prevention.
+ *   4. Creates an index on role to support admin queries filtered by role.
+ *   5. Creates an empty "feedback" collection for future use.
+ *
+ * Note: Password hashing is handled in the application layer (bcrypt, cost 12);
+ * only the hash is stored here.
+ */
+
 // MongoDB initialization for LMS Platform - User Service
 
 db = db.getSiblingDB('lms_users');

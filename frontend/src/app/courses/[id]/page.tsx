@@ -1,189 +1,297 @@
-import { Clock, BookOpen, Star, Users, Brain } from "lucide-react";
+"use client";
 
-// Sample data - in production, fetched from Course Service API
-const courseData: Record<number, any> = {
-  1: {
-    id: 1,
-    title: "Introduction to Python",
-    description: "Learn Python programming from scratch with hands-on exercises. This comprehensive course covers everything from basic syntax to advanced concepts like object-oriented programming and file handling.",
-    category: "Programming",
-    price: 0.0,
-    is_free: true,
-    instructor_id: "instructor_1",
-    lessons: [
-      { id: 1, title: "Getting Started with Python", duration_minutes: 15, order_index: 1 },
-      { id: 2, title: "Variables and Data Types", duration_minutes: 20, order_index: 2 },
-      { id: 3, title: "Control Flow", duration_minutes: 25, order_index: 3 },
-      { id: 4, title: "Functions", duration_minutes: 20, order_index: 4 },
-    ],
-  },
-  2: {
-    id: 2,
-    title: "Web Development with React",
-    description: "Master React.js and build modern web applications. Learn components, hooks, state management, and how to build production-ready apps.",
-    category: "Web Development",
-    price: 29.99,
-    is_free: false,
-    instructor_id: "instructor_1",
-    lessons: [
-      { id: 5, title: "React Fundamentals", duration_minutes: 30, order_index: 1 },
-      { id: 6, title: "State Management", duration_minutes: 35, order_index: 2 },
-      { id: 7, title: "Building a Full App", duration_minutes: 45, order_index: 3 },
-    ],
-  },
-  3: {
-    id: 3,
-    title: "Data Science Fundamentals",
-    description: "Explore data analysis, visualization, and machine learning basics. Work with real datasets and learn industry tools.",
-    category: "Data Science",
-    price: 49.99,
-    is_free: false,
-    instructor_id: "instructor_2",
-    lessons: [
-      { id: 8, title: "Introduction to Data Science", duration_minutes: 20, order_index: 1 },
-      { id: 9, title: "Pandas & NumPy", duration_minutes: 40, order_index: 2 },
-      { id: 10, title: "Data Visualization", duration_minutes: 35, order_index: 3 },
-    ],
-  },
-};
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import {
+  Clock, BookOpen, Star, Users, Brain, Send, ArrowLeft,
+  GraduationCap, Award, CheckCircle2, CheckCircle, Video, FileText, Play,
+} from "lucide-react";
+import {
+  fetchCourse, fetchLessons, fetchReviews, enrollInCourse, chatWithAI, submitReview,
+  getUserProgress,
+} from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
-export default async function CourseDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const courseId = parseInt(id);
-  const course = courseData[courseId];
+interface Lesson { id: number; title: string; duration_minutes: number; order_index: number; video_url?: string | null; content?: string | null; }
+interface Review { id: number; user_id: string; rating: number; comment: string; created_at: string; }
+interface Course { id: number; title: string; description: string; category: string; price: number; is_free: boolean; instructor_id: string; lessons: Lesson[]; }
 
-  if (!course) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold mb-4">Course Not Found</h1>
-        <p className="text-gray-600 mb-8">The course you are looking for does not exist.</p>
-        <a href="/courses" className="text-indigo-600 hover:underline">
-          ← Back to Courses
-        </a>
-      </div>
-    );
+export default function CourseDetailPage() {
+  const params = useParams();
+  const courseId = Number(params.id);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [enrollMsg, setEnrollMsg] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewMsg, setReviewMsg] = useState("");
+  const [progressMap, setProgressMap] = useState<Record<number, boolean>>({});
+  const [isEnrolled, setIsEnrolled] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [c, l, r] = await Promise.all([fetchCourse(courseId), fetchLessons(courseId), fetchReviews(courseId)]);
+        setCourse(c); setLessons(l); setReviews(r);
+
+        // Load user progress if logged in
+        const user = getUser();
+        if (user) {
+          const progs = await getUserProgress(courseId, user._id);
+          if (progs && progs.length > 0) {
+            setIsEnrolled(true);
+            const map: Record<number, boolean> = {};
+            progs.forEach((p: { lesson_id: number; completed: boolean }) => { map[p.lesson_id] = p.completed; });
+            setProgressMap(map);
+          }
+        }
+      } catch { setCourse(null); } finally { setLoading(false); }
+    }
+    load();
+  }, [courseId]);
+
+  function getUser() {
+    try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; }
   }
 
-  const totalDuration = course.lessons.reduce(
-    (sum: number, l: any) => sum + l.duration_minutes,
-    0
+  async function handleEnroll() {
+    const user = getUser();
+    if (!user) { window.location.href = "/auth/login"; return; }
+    try { await enrollInCourse(courseId, user._id); setEnrollMsg("Enrolled successfully!"); }
+    catch (err: unknown) { setEnrollMsg(err instanceof Error ? err.message : "Enrollment failed"); }
+  }
+
+  async function handleChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    setChatMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+    setChatLoading(true);
+    try {
+      const resp = await chatWithAI(courseId, userMsg, chatMessages);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: resp.reply }]);
+    } catch { setChatMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process your question." }]); }
+    finally { setChatLoading(false); }
+  }
+
+  async function handleReview(e: React.FormEvent) {
+    e.preventDefault();
+    const user = getUser();
+    if (!user) { window.location.href = "/auth/login"; return; }
+    try {
+      const r = await submitReview(courseId, user._id, reviewRating, reviewComment);
+      setReviews((prev) => [...prev, r]); setReviewComment(""); setReviewMsg("Review submitted!");
+    } catch (err: unknown) { setReviewMsg(err instanceof Error ? err.message : "Failed to submit review"); }
+  }
+
+  if (loading) return (
+    <div className="mx-auto max-w-4xl px-4 py-16 text-center text-muted-foreground">
+      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="mt-4">Loading course...</p>
+    </div>
   );
 
+  if (!course) return (
+    <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+      <h1 className="text-2xl font-bold">Course Not Found</h1>
+      <Button variant="link" asChild className="mt-4"><a href="/courses"><ArrowLeft className="mr-1 h-4 w-4" /> Back to Courses</a></Button>
+    </div>
+  );
+
+  const totalDuration = lessons.reduce((sum, l) => sum + l.duration_minutes, 0);
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "N/A";
+  const completedCount = lessons.filter((l) => progressMap[l.id]).length;
+  const courseProgress = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      {/* Course Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl p-8 mb-8">
-        <div className="max-w-3xl">
-          <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-            {course.category}
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4">
-            {course.title}
-          </h1>
-          <p className="text-indigo-100 text-lg mb-6">{course.description}</p>
-          <div className="flex flex-wrap gap-6 text-sm">
-            <span className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              {course.lessons.length} lessons
-            </span>
-            <span className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              {totalDuration} min total
-            </span>
-            <span className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              4.8 rating
-            </span>
-            <span className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              1.2k enrolled
-            </span>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-r from-primary to-purple-600 text-primary-foreground shadow-xl">
+        <CardContent className="p-8 lg:p-12">
+          <Button variant="ghost" size="sm" asChild className="mb-4 text-primary-foreground/70 hover:bg-white/10 hover:text-primary-foreground">
+            <a href="/courses"><ArrowLeft className="mr-1 h-4 w-4" /> All Courses</a>
+          </Button>
+          <Badge className="mb-4 border-primary-foreground/20 bg-white/20 text-primary-foreground hover:bg-white/30">{course.category}</Badge>
+          <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
+          <p className="mb-6 max-w-3xl text-lg text-primary-foreground/80">{course.description}</p>
+          <div className="flex flex-wrap gap-6 text-sm text-primary-foreground/80">
+            <span className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> {lessons.length} lessons</span>
+            <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> {totalDuration} min</span>
+            <span className="flex items-center gap-2"><Star className="h-4 w-4" /> {avgRating} rating</span>
+            <span className="flex items-center gap-2"><Users className="h-4 w-4" /> {reviews.length} reviews</span>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Syllabus */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h2 className="text-2xl font-bold mb-6">Course Syllabus</h2>
-          <div className="space-y-3">
-            {course.lessons.map((lesson: any, index: number) => (
-              <a
-                key={lesson.id}
-                href={`/courses/${course.id}/lessons/${lesson.id}`}
-                className="flex items-center justify-between p-4 bg-white rounded-lg border hover:border-indigo-300 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-semibold">
-                    {index + 1}
-                  </span>
-                  <span className="font-medium group-hover:text-indigo-600 transition-colors">
-                    {lesson.title}
-                  </span>
-                </div>
-                <span className="text-sm text-gray-500">
-                  {lesson.duration_minutes} min
-                </span>
-              </a>
-            ))}
-          </div>
+          <Tabs defaultValue="syllabus" className="w-full">
+            <TabsList className="mb-6 w-full justify-start">
+              <TabsTrigger value="syllabus">Syllabus</TabsTrigger>
+              <TabsTrigger value="ai-tutor">AI Tutor</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
+            </TabsList>
 
-          {/* AI Tutor Section */}
-          <div className="mt-10">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Brain className="w-6 h-6 text-indigo-600" />
-              AI Tutor
-            </h2>
-            <div className="bg-white rounded-lg border p-6">
-              <p className="text-gray-600 mb-4">
-                Ask questions about this course and get AI-powered answers.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ask a question about this course..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                />
-                <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                  Ask
-                </button>
+            <TabsContent value="syllabus">
+              {isEnrolled && (
+                <div className="mb-4 rounded-lg border bg-card p-4">
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-medium">Your Progress</span>
+                    <span className="text-muted-foreground">{completedCount}/{lessons.length} lessons ({courseProgress}%)</span>
+                  </div>
+                  <Progress value={courseProgress} className="h-2" />
+                </div>
+              )}
+              <div className="space-y-2">
+                {lessons.map((lesson, index) => {
+                  const isDone = progressMap[lesson.id];
+                  const hasVideo = !!lesson.video_url;
+                  return (
+                    <a key={lesson.id} href={`/courses/${course.id}/lessons/${lesson.id}`}
+                      className={`group flex items-center justify-between rounded-lg border p-4 transition-all hover:border-primary/30 hover:shadow-sm ${
+                        isDone ? "border-emerald-100 bg-emerald-50/50" : "bg-card"
+                      }`}>
+                      <div className="flex items-center gap-4">
+                        {isDone ? (
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <CheckCircle className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                        )}
+                        <div>
+                          <span className={`font-medium transition-colors group-hover:text-primary ${isDone ? "text-emerald-700" : ""}`}>{lesson.title}</span>
+                          <div className="mt-0.5 flex items-center gap-2">
+                            {hasVideo && <Badge variant="outline" className="h-5 gap-0.5 px-1.5 text-[10px] border-blue-200 bg-blue-50 text-blue-600"><Video className="h-2.5 w-2.5" /> Video</Badge>}
+                            <span className="text-xs text-muted-foreground">{lesson.duration_minutes} min</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isDone && <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 text-xs">Done</Badge>}
+                        <Play className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
-            </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="ai-tutor">
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Brain className="h-5 w-5 text-primary" /> AI Tutor</CardTitle></CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground">Ask questions about this course and get AI-powered answers.</p>
+                  {chatMessages.length > 0 && (
+                    <div className="mb-4 max-h-80 space-y-3 overflow-y-auto rounded-lg border bg-muted/30 p-4">
+                      {chatMessages.map((msg, i) => (
+                        <div key={i} className={`rounded-lg p-3 text-sm ${msg.role === "user" ? "ml-8 bg-primary text-primary-foreground" : "mr-8 border bg-card"}`}>
+                          <span className="mb-1 block text-xs font-semibold opacity-70">{msg.role === "user" ? "You" : "AI Tutor"}</span>
+                          {msg.content}
+                        </div>
+                      ))}
+                      {chatLoading && <div className="mr-8 rounded-lg border bg-card p-3 text-sm text-muted-foreground animate-pulse">Thinking...</div>}
+                    </div>
+                  )}
+                  <form onSubmit={handleChat} className="flex gap-2">
+                    <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask a question..." disabled={chatLoading} />
+                    <Button type="submit" size="icon" disabled={chatLoading}><Send className="h-4 w-4" /></Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews">
+              {reviews.length > 0 ? (
+                <div className="mb-6 space-y-3">
+                  {reviews.map((review) => (
+                    <Card key={review.id}><CardContent className="p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="flex">{[1,2,3,4,5].map((s) => <Star key={s} className={`h-4 w-4 ${s <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
+                        <span className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</span>
+                      </div>
+                      {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                    </CardContent></Card>
+                  ))}
+                </div>
+              ) : <p className="mb-6 text-muted-foreground">No reviews yet. Be the first!</p>}
+              <Card>
+                <CardHeader><CardTitle className="text-lg">Write a Review</CardTitle></CardHeader>
+                <CardContent>
+                  {reviewMsg && <p className="mb-3 text-sm text-emerald-600">{reviewMsg}</p>}
+                  <form onSubmit={handleReview} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Rating:</span>
+                      {[1,2,3,4,5].map((s) => (
+                        <button key={s} type="button" onClick={() => setReviewRating(s)}>
+                          <Star className={`h-5 w-5 transition-colors ${s <= reviewRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30 hover:text-amber-300"}`} />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Share your experience..."
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} />
+                    <Button type="submit">Submit Review</Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Sidebar */}
         <div>
-          <div className="bg-white rounded-xl border p-6 sticky top-8">
-            <div className="text-3xl font-bold text-indigo-600 mb-4">
-              {course.is_free ? "Free" : `$${course.price}`}
-            </div>
-            <button className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors mb-4">
-              {course.is_free ? "Enroll for Free" : "Buy Now"}
-            </button>
-            <div className="space-y-3 text-sm text-gray-600">
-              <div className="flex justify-between">
-                <span>Lessons</span>
-                <span className="font-medium">{course.lessons.length}</span>
+          <Card className="sticky top-20">
+            <CardContent className="p-6">
+              <div className="mb-4 text-3xl font-bold text-primary">{course.is_free ? "Free" : `$${course.price}`}</div>
+              {isEnrolled ? (
+                <>
+                  <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+                    <CheckCircle2 className="mx-auto mb-1 h-5 w-5 text-emerald-600" />
+                    <p className="text-sm font-medium text-emerald-700">Enrolled</p>
+                  </div>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-medium">{courseProgress}%</span>
+                  </div>
+                  <Progress value={courseProgress} className="mb-3 h-2" />
+                  {lessons.length > 0 && (
+                    <Button asChild className="mb-2 w-full" size="lg">
+                      <a href={`/courses/${courseId}/lessons/${
+                        // Resume from first incomplete lesson, or first lesson
+                        (lessons.find((l) => !progressMap[l.id]) || lessons[0]).id
+                      }`}>
+                        {completedCount > 0 ? "Continue Learning" : "Start Learning"}
+                      </a>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button onClick={handleEnroll} className="mb-2 w-full" size="lg">{course.is_free ? "Enroll for Free" : "Buy & Enroll"}</Button>
+                  {enrollMsg && <p className="mb-4 text-center text-sm text-emerald-600">{enrollMsg}</p>}
+                </>
+              )}
+              <Separator className="my-4" />
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-muted-foreground"><BookOpen className="h-4 w-4" /> Lessons</span><span className="font-medium">{lessons.length}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" /> Duration</span><span className="font-medium">{totalDuration} min</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-muted-foreground"><GraduationCap className="h-4 w-4" /> Level</span><span className="font-medium">Beginner</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-muted-foreground"><Award className="h-4 w-4" /> Certificate</span><CheckCircle2 className="h-4 w-4 text-emerald-600" /></div>
               </div>
-              <div className="flex justify-between">
-                <span>Total Duration</span>
-                <span className="font-medium">{totalDuration} min</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Level</span>
-                <span className="font-medium">Beginner</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Certificate</span>
-                <span className="font-medium">Yes</span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

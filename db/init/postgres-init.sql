@@ -1,4 +1,23 @@
--- PostgreSQL initialization for LMS Platform
+-- =============================================================================
+-- PostgreSQL Initialization Script — LMS Platform
+--
+-- Executed automatically by the postgres Docker container on first startup
+-- (file is mounted at /docker-entrypoint-initdb.d/init.sql).
+--
+-- Tables created:
+--   courses      : Course catalogue with pricing and instructor reference.
+--   lessons      : Ordered lesson content belonging to a course.
+--   enrollments  : Many-to-many join between users (MongoDB _id) and courses.
+--   progress     : Per-user, per-lesson completion tracking.
+--   reviews      : One review per user per course (rating 1–5).
+--   analytics    : Append-only event log for platform analytics.
+--
+-- Indexes are created after table definitions to speed up common queries
+-- (category filter, user/course lookups, analytics event filtering).
+--
+-- Seed data inserts 5 sample courses and 10 lessons for development/demo use.
+-- ON CONFLICT DO NOTHING ensures re-running the script is idempotent.
+-- =============================================================================
 
 -- Courses table
 CREATE TABLE IF NOT EXISTS courses (
@@ -87,15 +106,432 @@ INSERT INTO courses (title, description, instructor_id, category, price, is_free
 ('Machine Learning A-Z', 'Comprehensive guide to machine learning algorithms and applications.', 'instructor_3', 'AI/ML', 59.99, false, '/images/ml.jpg')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO lessons (course_id, title, content, order_index, duration_minutes) VALUES
-(1, 'Getting Started with Python', 'In this lesson, we will set up Python and write our first program.', 1, 15),
-(1, 'Variables and Data Types', 'Learn about Python variables, strings, numbers, and booleans.', 2, 20),
-(1, 'Control Flow', 'Master if/else statements, loops, and conditional logic.', 3, 25),
-(1, 'Functions', 'Learn how to define and use functions in Python.', 4, 20),
-(2, 'React Fundamentals', 'Introduction to React components, JSX, and props.', 1, 30),
-(2, 'State Management', 'Learn useState, useEffect, and React state patterns.', 2, 35),
-(2, 'Building a Full App', 'Put it all together and build a complete React application.', 3, 45),
-(3, 'Introduction to Data Science', 'Overview of data science tools and methodologies.', 1, 20),
-(3, 'Pandas & NumPy', 'Data manipulation with Pandas and numerical computing with NumPy.', 2, 40),
-(3, 'Data Visualization', 'Create compelling visualizations with Matplotlib and Seaborn.', 3, 35)
+INSERT INTO lessons (course_id, title, content, video_url, order_index, duration_minutes) VALUES
+(1, 'Getting Started with Python', '# Getting Started with Python
+
+Welcome to your first Python lesson! In this lesson you will set up your development environment and write your very first program.
+
+## Installing Python
+
+1. Visit python.org and download the latest version
+2. Run the installer — make sure to check "Add Python to PATH"
+3. Open a terminal and type `python --version` to verify
+
+## Your First Program
+
+Open a text editor and create a file called `hello.py`:
+
+```
+print("Hello, World!")
+```
+
+Run it with:
+
+```
+python hello.py
+```
+
+Congratulations — you just wrote your first Python program!
+
+## Key Takeaways
+
+- Python is an interpreted language — no compilation needed
+- The `print()` function outputs text to the console
+- Python files use the `.py` extension', 'https://www.youtube.com/watch?v=kqtD5dpn9C8', 1, 15),
+
+(1, 'Variables and Data Types', '# Variables and Data Types
+
+Python has several built-in data types. Let''s explore the most common ones.
+
+## Strings
+
+Strings are sequences of characters wrapped in quotes:
+
+```
+name = "Alice"
+greeting = ''Hello''
+message = f"Welcome, {name}!"
+```
+
+## Numbers
+
+Python supports integers and floating-point numbers:
+
+```
+age = 25
+pi = 3.14159
+total = age + 10
+```
+
+## Booleans
+
+Booleans represent True or False values:
+
+```
+is_active = True
+is_admin = False
+```
+
+## Type Checking
+
+Use `type()` to check a variable''s type:
+
+```
+print(type(name))    # <class ''str''>
+print(type(age))     # <class ''int''>
+print(type(pi))      # <class ''float''>
+```
+
+## Practice Exercise
+
+- Create variables for your name, age, and whether you like Python
+- Print each variable with its type', 'https://www.youtube.com/watch?v=cQT33yu9pY8', 2, 20),
+
+(1, 'Control Flow', '# Control Flow
+
+Control flow lets your programs make decisions and repeat actions.
+
+## If / Else Statements
+
+```
+age = 18
+if age >= 18:
+    print("You are an adult")
+elif age >= 13:
+    print("You are a teenager")
+else:
+    print("You are a child")
+```
+
+## For Loops
+
+Iterate over sequences:
+
+```
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(f"I like {fruit}")
+```
+
+## While Loops
+
+Repeat while a condition is true:
+
+```
+count = 0
+while count < 5:
+    print(count)
+    count += 1
+```
+
+## List Comprehensions
+
+A concise way to create lists:
+
+```
+squares = [x**2 for x in range(10)]
+```', NULL, 3, 25),
+
+(1, 'Functions', '# Functions in Python
+
+Functions let you organize and reuse code.
+
+## Defining a Function
+
+```
+def greet(name):
+    return f"Hello, {name}!"
+
+message = greet("Alice")
+print(message)
+```
+
+## Default Parameters
+
+```
+def greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+print(greet("Bob"))
+print(greet("Bob", "Hi"))
+```
+
+## Multiple Return Values
+
+```
+def divide(a, b):
+    quotient = a // b
+    remainder = a % b
+    return quotient, remainder
+
+q, r = divide(17, 5)
+```
+
+## Lambda Functions
+
+Short anonymous functions:
+
+```
+square = lambda x: x ** 2
+numbers = [1, 2, 3, 4, 5]
+squared = list(map(square, numbers))
+```', 'https://www.youtube.com/watch?v=9Os0o3wzS_I', 4, 20),
+
+(2, 'React Fundamentals', '# React Fundamentals
+
+React is a JavaScript library for building user interfaces using reusable components.
+
+## What is JSX?
+
+JSX lets you write HTML-like syntax in JavaScript:
+
+```
+function Welcome() {
+  return <h1>Hello, React!</h1>;
+}
+```
+
+## Components and Props
+
+Components accept inputs called **props**:
+
+```
+function UserCard({ name, role }) {
+  return (
+    <div className="card">
+      <h2>{name}</h2>
+      <p>{role}</p>
+    </div>
+  );
+}
+
+// Usage
+<UserCard name="Alice" role="Developer" />
+```
+
+## Component Composition
+
+Build complex UIs by nesting components:
+
+```
+function App() {
+  return (
+    <div>
+      <Header />
+      <UserCard name="Alice" role="Developer" />
+      <UserCard name="Bob" role="Designer" />
+      <Footer />
+    </div>
+  );
+}
+```', 'https://www.youtube.com/watch?v=SqcY0GlETPk', 1, 30),
+
+(2, 'State Management', '# State Management in React
+
+State allows components to manage and respond to changing data.
+
+## useState Hook
+
+```
+import { useState } from "react";
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+1</button>
+    </div>
+  );
+}
+```
+
+## useEffect Hook
+
+Run side effects like API calls or timers:
+
+```
+import { useState, useEffect } from "react";
+
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(data => setUser(data));
+  }, [userId]);
+
+  if (!user) return <p>Loading...</p>;
+  return <h1>{user.name}</h1>;
+}
+```
+
+## Best Practices
+
+- Keep state as close to where it''s used as possible
+- Lift state up when siblings need to share data
+- Use `useReducer` for complex state logic', 'https://www.youtube.com/watch?v=O6P86uwfdR0', 2, 35),
+
+(2, 'Building a Full App', '# Building a Complete React Application
+
+Let''s put everything together and build a task management app.
+
+## Project Structure
+
+```
+src/
+  components/
+    TaskList.jsx
+    TaskForm.jsx
+    TaskItem.jsx
+  App.jsx
+  index.js
+```
+
+## The Main App Component
+
+```
+function App() {
+  const [tasks, setTasks] = useState([]);
+
+  const addTask = (title) => {
+    setTasks([...tasks, { id: Date.now(), title, done: false }]);
+  };
+
+  const toggleTask = (id) => {
+    setTasks(tasks.map(t =>
+      t.id === id ? { ...t, done: !t.done } : t
+    ));
+  };
+
+  return (
+    <div>
+      <h1>My Tasks</h1>
+      <TaskForm onAdd={addTask} />
+      <TaskList tasks={tasks} onToggle={toggleTask} />
+    </div>
+  );
+}
+```
+
+## Key Patterns Used
+
+- **State lifting**: App owns the tasks array
+- **Props drilling**: Passing handlers down to children
+- **Immutable updates**: Using spread operator for state changes
+- **Unique keys**: Using `Date.now()` for list item keys', NULL, 3, 45),
+
+(3, 'Introduction to Data Science', '# Introduction to Data Science
+
+Data science combines statistics, programming, and domain expertise to extract insights from data.
+
+## The Data Science Workflow
+
+1. **Define the question** — What problem are you solving?
+2. **Collect data** — Gather data from APIs, databases, files
+3. **Clean data** — Handle missing values, outliers, formatting
+4. **Explore data** — Visualize patterns and relationships
+5. **Model data** — Apply statistical or ML models
+6. **Communicate** — Present findings clearly
+
+## Essential Tools
+
+- **Python** — The language of data science
+- **Jupyter Notebooks** — Interactive coding environment
+- **Pandas** — Data manipulation library
+- **NumPy** — Numerical computing
+- **Matplotlib / Seaborn** — Visualization
+- **Scikit-learn** — Machine learning', 'https://www.youtube.com/watch?v=ua-CiDNNj30', 1, 20),
+
+(3, 'Pandas & NumPy', '# Pandas & NumPy
+
+## NumPy Arrays
+
+NumPy provides fast numerical operations:
+
+```
+import numpy as np
+
+arr = np.array([1, 2, 3, 4, 5])
+print(arr.mean())    # 3.0
+print(arr.std())     # 1.414
+
+matrix = np.array([[1, 2], [3, 4]])
+print(matrix.shape)  # (2, 2)
+```
+
+## Pandas DataFrames
+
+Pandas is the backbone of data manipulation:
+
+```
+import pandas as pd
+
+df = pd.read_csv("sales.csv")
+print(df.head())
+print(df.describe())
+print(df.info())
+```
+
+## Filtering and Selection
+
+```
+# Select columns
+names = df["name"]
+
+# Filter rows
+adults = df[df["age"] >= 18]
+
+# Multiple conditions
+senior_devs = df[(df["age"] > 30) & (df["role"] == "developer")]
+```
+
+## Grouping and Aggregation
+
+```
+revenue_by_region = df.groupby("region")["revenue"].sum()
+avg_by_category = df.groupby("category").agg({"price": "mean", "quantity": "sum"})
+```', NULL, 2, 40),
+
+(3, 'Data Visualization', '# Data Visualization
+
+## Matplotlib Basics
+
+```
+import matplotlib.pyplot as plt
+
+x = [1, 2, 3, 4, 5]
+y = [2, 4, 6, 8, 10]
+
+plt.plot(x, y)
+plt.xlabel("X Axis")
+plt.ylabel("Y Axis")
+plt.title("Simple Line Plot")
+plt.show()
+```
+
+## Seaborn for Statistical Plots
+
+Seaborn builds on Matplotlib with beautiful defaults:
+
+```
+import seaborn as sns
+
+# Distribution plot
+sns.histplot(data=df, x="age", bins=20)
+
+# Scatter with regression
+sns.regplot(data=df, x="hours_studied", y="score")
+
+# Correlation heatmap
+sns.heatmap(df.corr(), annot=True, cmap="coolwarm")
+```
+
+## Best Practices
+
+- Always label your axes and add titles
+- Choose the right chart type for your data
+- Use color meaningfully — not just for decoration
+- Keep it simple — avoid chart junk', 'https://www.youtube.com/watch?v=UO98lJQ3QGI', 3, 35)
 ON CONFLICT DO NOTHING;
