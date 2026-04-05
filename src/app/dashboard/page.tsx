@@ -35,7 +35,9 @@ export default function DashboardPage() {
           </div>
           <div className="bg-white/10 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold">1</div>
-            <div className="text-sm text-purple-200">Certificates</div>
+            <div className="text-sm text-purple-200">
+              <Link href="/certificates" className="hover:underline">Certificates</Link>
+            </div>
           </div>
         </div>
       </div>
