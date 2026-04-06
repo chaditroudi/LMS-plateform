@@ -1,30 +1,79 @@
 """
-LLM Client — Groq Integration (OpenAI-compatible)
+LLM client helpers for the AI Tutor Service.
 
-Provides async helpers to interact with the Groq API for:
-  - Chat completions (multi-turn conversation)
-  - Text generation (single prompt, e.g. quiz / recommendations)
-  - JSON generation (structured output with retry/parse)
+Supports the official OpenAI API by default while still allowing any
+OpenAI-compatible endpoint through environment variables.
 
 Environment variables:
-  GROQ_API_KEY — Your Groq API key
-  LLM_MODEL    — Model name to use (default: llama-3.3-70b-versatile)
+    OPENAI_API_KEY   OpenAI API key
+    OPENAI_BASE_URL  Optional OpenAI-compatible base URL
+    GROQ_API_KEY     Groq API key
+    GROQ_BASE_URL    Optional override for Groq's OpenAI-compatible base URL
+    LLM_MODEL        Model name to use
 """
 
-import os
 import json
 import logging
+import os
+from json import JSONDecodeError, JSONDecoder
+
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "").strip() or "https://api.groq.com/openai/v1"
+
+if OPENAI_API_KEY:
+    API_KEY = OPENAI_API_KEY
+    BASE_URL = OPENAI_BASE_URL or None
+    LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    LLM_BACKEND = "openai-compatible" if OPENAI_BASE_URL else "openai"
+elif GROQ_API_KEY:
+    API_KEY = GROQ_API_KEY
+    BASE_URL = GROQ_BASE_URL
+    LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+    LLM_BACKEND = "groq"
+else:
+    API_KEY = ""
+    BASE_URL = OPENAI_BASE_URL or None
+    LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    LLM_BACKEND = "unconfigured"
 
 client = AsyncOpenAI(
-    api_key=GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1",
-) if GROQ_API_KEY else None
+    api_key=API_KEY,
+    base_url=BASE_URL,
+) if API_KEY else None
+
+
+def _extract_json_payload(text: str) -> dict | list | None:
+    """Extract the first valid JSON object or array from model output."""
+    cleaned = text.strip()
+    if not cleaned:
+        return None
+
+    if "```json" in cleaned:
+        cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in cleaned:
+        cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
+
+    try:
+        return json.loads(cleaned)
+    except JSONDecodeError:
+        decoder = JSONDecoder()
+        for index, char in enumerate(cleaned):
+            if char not in "[{":
+                continue
+            try:
+                parsed, _ = decoder.raw_decode(cleaned[index:])
+                return parsed
+            except JSONDecodeError:
+                continue
+
+    logger.warning("Failed to parse LLM JSON output: %s", cleaned[:200])
+    return None
 
 
 async def chat_completion(
@@ -32,32 +81,27 @@ async def chat_completion(
     messages: list[dict],
     temperature: float = 0.7,
 ) -> str:
-    """
-    Send a multi-turn chat to Groq and return the assistant reply.
-    """
+    """Send a multi-turn chat request and return the assistant reply."""
     if not client:
-        return "AI tutor is not configured. Please set the GROQ_API_KEY."
+        return "AI tutor is not configured. Please set OPENAI_API_KEY or GROQ_API_KEY."
 
-    openai_messages = [{"role": "system", "content": system_prompt}]
-    openai_messages.extend(messages)
+    request_messages = [{"role": "system", "content": system_prompt}, *messages]
 
     try:
         resp = await client.chat.completions.create(
             model=LLM_MODEL,
-            messages=openai_messages,
+            messages=request_messages,
             temperature=temperature,
             max_tokens=512,
         )
         return resp.choices[0].message.content or "I'm sorry, I couldn't generate a response."
-    except Exception as e:
-        logger.error("Groq chat failed: %s", e)
+    except Exception as exc:
+        logger.error("LLM chat failed: %s", exc)
         raise
 
 
 async def generate_text(prompt: str, temperature: float = 0.7) -> str:
-    """
-    Single-prompt text generation via Groq chat completions.
-    """
+    """Send a single prompt and return free-form text."""
     if not client:
         return ""
 
@@ -69,54 +113,44 @@ async def generate_text(prompt: str, temperature: float = 0.7) -> str:
             max_tokens=1024,
         )
         return resp.choices[0].message.content or ""
-    except Exception as e:
-        logger.error("Groq generate failed: %s", e)
+    except Exception as exc:
+        logger.error("LLM text generation failed: %s", exc)
         return ""
 
 
 async def generate_json(prompt: str, temperature: float = 0.3) -> dict | list | None:
-    """
-    Generate a response and parse it as JSON.
-    Uses response_format for structured output.
-    """
+    """Generate a response and parse the first valid JSON payload returned."""
     if not client:
         return None
 
     try:
         resp = await client.chat.completions.create(
             model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Return valid JSON only. Do not use markdown fences or explanatory text."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
             temperature=temperature,
             max_tokens=1024,
-            response_format={"type": "json_object"},
         )
         raw = resp.choices[0].message.content or ""
-    except Exception as e:
-        logger.error("Groq JSON generation failed: %s", e)
+    except Exception as exc:
+        logger.error("LLM JSON generation failed: %s", exc)
         return None
 
-    # Try to extract JSON from the response
-    text = raw.strip()
-    if "```json" in text:
-        text = text.split("```json", 1)[1]
-        text = text.split("```", 1)[0]
-    elif "```" in text:
-        text = text.split("```", 1)[1]
-        text = text.split("```", 1)[0]
-
-    try:
-        parsed = json.loads(text.strip())
-        # If the model wraps the array in an object, try to extract it
-        if isinstance(parsed, dict) and len(parsed) == 1:
-            val = next(iter(parsed.values()))
-            if isinstance(val, list):
-                return val
-        return parsed
-    except json.JSONDecodeError:
-        logger.warning("Failed to parse Groq JSON output: %s", text[:200])
-        return None
+    parsed = _extract_json_payload(raw)
+    if isinstance(parsed, dict) and len(parsed) == 1:
+        value = next(iter(parsed.values()))
+        if isinstance(value, list):
+            return value
+    return parsed
 
 
-async def is_groq_available() -> bool:
-    """Health check — returns True if Groq API key is configured."""
+async def is_llm_available() -> bool:
+    """Health check for LLM configuration."""
     return bool(client)

@@ -42,7 +42,7 @@ Plateforme de gestion d'apprentissage en ligne (Learning Management System) cons
 | **Course Service** | FastAPI, SQLAlchemy, PostgreSQL | `8001` | Gestion des cours, leçons et inscriptions |
 | **User Service** | Node.js, Express, MongoDB | `8002` | Authentification JWT, profils utilisateurs |
 | **Analytics Service** | FastAPI, SQLAlchemy, PostgreSQL | `8003` | Suivi des vues, inscriptions et tendances |
-| **AI Tutor Service** | FastAPI, LLM (Llama2) | `8004` | Tuteur intelligent et aide contextuelle |
+| **AI Tutor Service** | FastAPI, OpenAI SDK + Groq | `8004` | Tuteur IA, recommandations et quiz |
 | **n8n** | n8n Automation | `5680` | Workflows d'automatisation (feedback) |
 | **Nginx** | Nginx Alpine | `80` | API Gateway / Reverse proxy |
 
@@ -121,7 +121,9 @@ docker compose ps
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | `POST` | `/api/ai/chat` | Envoyer un message au tuteur |
-| `GET` | `/api/ai/history` | Historique des conversations |
+| `POST` | `/api/ai/recommendations` | Recommandations de cours personnalisées (LLM) |
+| `POST` | `/api/ai/quiz/generate` | Génération de quiz basée sur le contenu d'une leçon |
+| `GET`  | `/health` | Vérification de santé + état de la configuration LLM |
 
 ### Health Checks
 
@@ -167,7 +169,11 @@ npm run dev
 | `MONGODB_URI` | user-service | URL MongoDB |
 | `REDIS_URL` | course, user, analytics, ai-tutor | URL Redis |
 | `JWT_SECRET` | user-service | Clé secrète JWT |
-| `LLM_MODEL` | ai-tutor | Modèle LLM à utiliser |
+| `OPENAI_API_KEY` | ai-tutor | Clé API OpenAI |
+| `OPENAI_BASE_URL` | ai-tutor | URL optionnelle pour un backend compatible OpenAI |
+| `GROQ_API_KEY` | ai-tutor | Clé API Groq |
+| `GROQ_BASE_URL` | ai-tutor | URL Groq compatible OpenAI (défaut : `https://api.groq.com/openai/v1`) |
+| `LLM_MODEL` | ai-tutor | Modèle LLM à utiliser (défaut Docker : `llama-3.3-70b-versatile`) |
 
 ### Arrêter la plateforme
 

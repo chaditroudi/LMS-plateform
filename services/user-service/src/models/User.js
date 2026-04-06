@@ -18,6 +18,40 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const learningPreferencesSchema = new mongoose.Schema({
+  interests: {
+    type: [String],
+    default: [],
+  },
+  skill_level: {
+    type: String,
+    enum: ['beginner', 'intermediate', 'advanced'],
+    default: 'beginner',
+  },
+  learning_goal: {
+    type: String,
+    default: '',
+  },
+  preferred_categories: {
+    type: [String],
+    default: [],
+  },
+  preferred_formats: {
+    type: [String],
+    default: [],
+  },
+  weekly_hours: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  learning_style: {
+    type: String,
+    enum: ['hands_on', 'theory_first', 'short_lessons', 'mixed'],
+    default: 'mixed',
+  },
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   /** Unique email address — used as the login identifier. */
   email: {
@@ -54,6 +88,10 @@ const userSchema = new mongoose.Schema({
   bio: {
     type: String,
     default: '',
+  },
+  learning_preferences: {
+    type: learningPreferencesSchema,
+    default: () => ({}),
   },
 }, {
   timestamps: true,

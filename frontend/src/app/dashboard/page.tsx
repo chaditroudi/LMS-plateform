@@ -27,7 +27,7 @@
 import React, { useState, useEffect } from "react";
 import { BookOpen, Clock, Award, TrendingUp, BarChart3, ArrowRight, Sparkles } from "lucide-react";
 import {
-  fetchDashboardStats, getUserEnrollments, fetchCourse, getUserProgress, getRecommendations,
+  fetchDashboardStats, getUserEnrollments, fetchCourse, getUserProgress, getRecommendations, getProfile, LearningPreferences,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,6 +45,14 @@ interface DashboardStats {
   enrollment_trends: { label: string; value: number }[];
 }
 interface Recommendation { course_id: number; title: string; reason: string; score: number; }
+interface UserProfileResponse { _id: string; learning_preferences?: LearningPreferences; }
+
+function hasMeaningfulPreferences(preferences?: LearningPreferences) {
+  return Boolean(
+    preferences?.interests?.some((item) => item.trim()) ||
+    preferences?.learning_goal?.trim()
+  );
+}
 
 export default function DashboardPage() {
   const [user, setUser] = useState<{ _id: string; name: string } | null>(null);
@@ -52,6 +60,7 @@ export default function DashboardPage() {
   const [courseDetails, setCourseDetails] = useState<Map<number, { title: string; totalLessons: number; completedLessons: number }>>(new Map());
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [hasPreferenceSetup, setHasPreferenceSetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,7 +70,12 @@ export default function DashboardPage() {
         if (!stored) { window.location.href = "/auth/login"; return; }
         const u = JSON.parse(stored);
         setUser(u);
-        const [enrs, dashStats] = await Promise.all([getUserEnrollments(u._id), fetchDashboardStats()]);
+        const [enrs, dashStats, fullProfile] = await Promise.all([
+          getUserEnrollments(u._id),
+          fetchDashboardStats(),
+          getProfile() as Promise<UserProfileResponse | null>,
+        ]);
+        setHasPreferenceSetup(hasMeaningfulPreferences(fullProfile?.learning_preferences));
         setEnrollments(enrs); setStats(dashStats);
         const details = new Map<number, { title: string; totalLessons: number; completedLessons: number }>();
         await Promise.all(enrs.map(async (e: Enrollment) => {
@@ -71,7 +85,10 @@ export default function DashboardPage() {
           } catch { /* skip */ }
         }));
         setCourseDetails(details);
-        try { const recs = await getRecommendations(u._id); setRecommendations(recs.recommendations || []); } catch { /* ignore */ }
+        try {
+          const recs = await getRecommendations(u._id, undefined, fullProfile?.learning_preferences);
+          setRecommendations(recs.recommendations || []);
+        } catch { /* ignore */ }
       } catch { /* ignore */ } finally { setLoading(false); }
     }
     load();
@@ -107,7 +124,7 @@ export default function DashboardPage() {
         <TabsList>
           <TabsTrigger value="courses">My Courses</TabsTrigger>
           <TabsTrigger value="analytics">Platform Analytics</TabsTrigger>
-          {recommendations.length > 0 && <TabsTrigger value="recommendations">Recommended</TabsTrigger>}
+          <TabsTrigger value="recommendations">Recommended</TabsTrigger>
         </TabsList>
 
         {/* My Courses */}
@@ -193,8 +210,34 @@ export default function DashboardPage() {
         </TabsContent>
 
         {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <TabsContent value="recommendations">
+        <TabsContent value="recommendations">
+          {!hasPreferenceSetup ? (
+            <Card className="text-center">
+              <CardContent className="py-12">
+                <Sparkles className="mx-auto mb-4 h-12 w-12 text-amber-500/60" />
+                <h3 className="text-lg font-semibold">Set your AI recommendation goal first</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Add a learning goal and a few interests in your profile to unlock personalized AI recommendations.
+                </p>
+                <Button className="mt-4" asChild>
+                  <a href="/dashboard/profile">Open Profile <ArrowRight className="ml-1 h-4 w-4" /></a>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : recommendations.length === 0 ? (
+            <Card className="text-center">
+              <CardContent className="py-12">
+                <Sparkles className="mx-auto mb-4 h-12 w-12 text-amber-500/60" />
+                <h3 className="text-lg font-semibold">No matching recommendations yet</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Try a clearer goal and simpler interests in your profile, like `become a data analyst` and `python, data science`.
+                </p>
+                <Button className="mt-4" asChild>
+                  <a href="/dashboard/profile">Update Preferences <ArrowRight className="ml-1 h-4 w-4" /></a>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {recommendations.map((r) => (
                 <a key={r.course_id} href={`/courses/${r.course_id}`} className="group">
@@ -210,8 +253,8 @@ export default function DashboardPage() {
                 </a>
               ))}
             </div>
-          </TabsContent>
-        )}
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );

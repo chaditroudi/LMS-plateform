@@ -23,6 +23,16 @@ function getBaseUrl() {
   return process.env.NEXT_PUBLIC_API_URL || "http://nginx-gateway";
 }
 
+export interface LearningPreferences {
+  interests?: string[];
+  skill_level?: "beginner" | "intermediate" | "advanced";
+  learning_goal?: string;
+  preferred_categories?: string[];
+  preferred_formats?: string[];
+  weekly_hours?: number;
+  learning_style?: "hands_on" | "theory_first" | "short_lessons" | "mixed";
+}
+
 /** Returns Authorization header with Bearer token if one is stored in localStorage. */
 function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -269,7 +279,8 @@ export async function generateQuiz(
 /** Fetch AI-generated course recommendations for a user. */
 export async function getRecommendations(
   userId: string,
-  currentCourseId?: number
+  currentCourseId?: number,
+  preferences?: LearningPreferences
 ) {
   const res = await fetch(`${getBaseUrl()}/api/ai/recommendations`, {
     method: "POST",
@@ -277,6 +288,8 @@ export async function getRecommendations(
     body: JSON.stringify({
       user_id: userId,
       current_course_id: currentCourseId,
+      interests: preferences?.interests || [],
+      learning_goal: preferences?.learning_goal,
     }),
   });
   if (!res.ok) throw new Error("Recommendations failed");
@@ -449,6 +462,7 @@ export async function updateProfile(data: {
   name?: string;
   bio?: string;
   avatar_url?: string;
+  learning_preferences?: LearningPreferences;
 }) {
   const res = await fetch(`${getBaseUrl()}/api/users/me`, {
     method: "PUT",

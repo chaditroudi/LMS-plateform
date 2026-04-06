@@ -17,6 +17,56 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const ALLOWED_SKILL_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
+const ALLOWED_LEARNING_STYLES = new Set(['hands_on', 'theory_first', 'short_lessons', 'mixed']);
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+}
+
+function sanitizeLearningPreferences(input = {}) {
+  const preferences = {};
+
+  if (input.interests !== undefined) {
+    preferences.interests = normalizeStringArray(input.interests);
+  }
+  if (input.skill_level !== undefined) {
+    const skillLevel = String(input.skill_level || '').trim().toLowerCase();
+    if (!ALLOWED_SKILL_LEVELS.has(skillLevel)) {
+      throw new Error('Invalid skill_level.');
+    }
+    preferences.skill_level = skillLevel;
+  }
+  if (input.learning_goal !== undefined) {
+    preferences.learning_goal = String(input.learning_goal || '').trim();
+  }
+  if (input.preferred_categories !== undefined) {
+    preferences.preferred_categories = normalizeStringArray(input.preferred_categories);
+  }
+  if (input.preferred_formats !== undefined) {
+    preferences.preferred_formats = normalizeStringArray(input.preferred_formats);
+  }
+  if (input.weekly_hours !== undefined) {
+    const weeklyHours = Number(input.weekly_hours);
+    if (!Number.isFinite(weeklyHours) || weeklyHours < 0) {
+      throw new Error('Invalid weekly_hours.');
+    }
+    preferences.weekly_hours = weeklyHours;
+  }
+  if (input.learning_style !== undefined) {
+    const learningStyle = String(input.learning_style || '').trim().toLowerCase();
+    if (!ALLOWED_LEARNING_STYLES.has(learningStyle)) {
+      throw new Error('Invalid learning_style.');
+    }
+    preferences.learning_style = learningStyle;
+  }
+
+  return preferences;
+}
+
 // GET /api/users/me — Fetch the authenticated user's own profile
 router.get('/me', authenticate, async (req, res) => {
   try {
@@ -47,6 +97,9 @@ router.put('/me', authenticate, [
     if (req.body.name) updates.name = req.body.name;
     if (req.body.bio !== undefined) updates.bio = req.body.bio;
     if (req.body.avatar_url !== undefined) updates.avatar_url = req.body.avatar_url;
+    if (req.body.learning_preferences !== undefined) {
+      updates.learning_preferences = sanitizeLearningPreferences(req.body.learning_preferences);
+    }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true });
     if (!user) {
@@ -55,6 +108,9 @@ router.put('/me', authenticate, [
 
     res.json(user);
   } catch (err) {
+    if (err.message && err.message.startsWith('Invalid ')) {
+      return res.status(400).json({ error: err.message });
+    }
     res.status(500).json({ error: 'Server error.' });
   }
 });

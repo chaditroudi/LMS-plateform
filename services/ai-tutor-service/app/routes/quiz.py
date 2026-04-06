@@ -2,7 +2,7 @@
 Quiz Generation Route — POST /api/ai/quiz/generate
 
 Generates multiple-choice quiz questions for a given course or lesson using
-the Ollama LLM. Falls back to sample questions if LLM is unavailable.
+the configured LLM. Falls back to sample questions if the LLM is unavailable.
 """
 
 import logging
@@ -10,7 +10,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
 
-from app.llm import generate_json, is_groq_available
+from app.llm import generate_json, is_llm_available
 from app.database import get_course_context, get_lesson_context
 
 logger = logging.getLogger(__name__)
@@ -117,11 +117,11 @@ def _fallback_questions() -> List[QuizQuestion]:
 async def generate_quiz(request: QuizGenerateRequest):
     """
     AI-powered quiz generation based on course/lesson content.
-    Uses Ollama LLM to generate contextual questions.
-    Falls back to sample questions if unavailable.
+    Uses the configured LLM to generate contextual questions.
+    Falls back to sample questions if the LLM is unavailable.
     """
-    if not await is_groq_available():
-        logger.warning("Ollama unavailable, returning fallback quiz questions")
+    if not await is_llm_available():
+        logger.warning("LLM unavailable, returning fallback quiz questions")
         return QuizResponse(
             course_id=request.course_id,
             lesson_id=request.lesson_id,

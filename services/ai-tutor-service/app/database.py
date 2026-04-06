@@ -7,7 +7,7 @@ generating quizzes, or making recommendations.
 """
 
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -49,6 +49,23 @@ class Lesson(Base):
     course = relationship("Course", back_populates="lessons")
 
 
+class Enrollment(Base):
+    __tablename__ = "enrollments"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(255), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"))
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(255), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"))
+    rating = Column(Integer, nullable=False)
+
+
 # ── Helper functions ──
 
 
@@ -79,7 +96,8 @@ def get_course_context(course_id: int) -> str:
             "Lessons:",
         ]
         for lesson in course.lessons:
-            parts.append(f"  {lesson.order_index + 1}. {lesson.title}")
+            lesson_number = lesson.order_index if lesson.order_index is not None else len(parts)
+            parts.append(f"  {lesson_number}. {lesson.title}")
             if lesson.content:
                 # Include first 200 chars of each lesson content for context
                 snippet = lesson.content[:200]
@@ -119,5 +137,56 @@ def get_all_courses_summary() -> str:
                 f"Description: {(c.description or '')[:200]}"
             )
         return "\n".join(parts)
+    finally:
+        db.close()
+
+
+def get_recommendation_catalog(user_id: str) -> tuple[list[dict], set[int]]:
+    """Return course metadata plus the set of course IDs already enrolled by the user."""
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).all()
+        enrolled_rows = (
+            db.query(Enrollment.course_id)
+            .filter(Enrollment.user_id == user_id)
+            .all()
+        )
+        enrolled_ids = {course_id for (course_id,) in enrolled_rows}
+
+        popularity_rows = (
+            db.query(Enrollment.course_id, func.count(Enrollment.id))
+            .group_by(Enrollment.course_id)
+            .all()
+        )
+        rating_rows = (
+            db.query(Review.course_id, func.avg(Review.rating), func.count(Review.id))
+            .group_by(Review.course_id)
+            .all()
+        )
+        popularity_by_course = {
+            course_id: count for course_id, count in popularity_rows if course_id is not None
+        }
+        ratings_by_course = {
+            course_id: {
+                "rating_avg": float(avg or 0),
+                "rating_count": int(count or 0),
+            }
+            for course_id, avg, count in rating_rows
+            if course_id is not None
+        }
+
+        catalog = [
+            {
+                "course_id": course.id,
+                "title": course.title or f"Course {course.id}",
+                "category": course.category or "General",
+                "description": course.description or "",
+                "popularity": int(popularity_by_course.get(course.id, 0)),
+                "rating_avg": ratings_by_course.get(course.id, {}).get("rating_avg", 0.0),
+                "rating_count": ratings_by_course.get(course.id, {}).get("rating_count", 0),
+            }
+            for course in courses
+        ]
+        return catalog, enrolled_ids
     finally:
         db.close()

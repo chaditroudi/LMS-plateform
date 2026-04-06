@@ -1,14 +1,14 @@
-"""AI Tutor Service — FastAPI + OpenAI"""
+"""AI Tutor Service — FastAPI + configurable LLM backend."""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import chat, recommendations, quiz
-from app.llm import is_groq_available, LLM_MODEL
+from app.llm import is_llm_available, LLM_BACKEND, LLM_MODEL
 
 app = FastAPI(
     title="LMS AI Tutor Service",
-    description="AI-powered Q&A, recommendations, and quiz generation via OpenAI",
+    description="AI-powered Q&A, recommendations, and quiz generation via a configurable LLM backend",
     version="3.0.0",
     redirect_slashes=False,
 )
@@ -31,7 +31,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "ai-tutor-service",
-        "llm_backend": "groq",
+        "llm_backend": LLM_BACKEND,
         "llm_model": LLM_MODEL,
-        "api_key_configured": await is_groq_available(),
+        "api_key_configured": await is_llm_available(),
     }
