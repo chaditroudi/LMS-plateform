@@ -161,9 +161,9 @@ export default function LessonPage() {
     <>
       {/* Top reading progress bar */}
       {hasText && (
-        <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-muted">
+        <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-muted/50">
           <div
-            className="h-full bg-primary transition-all duration-200"
+            className="h-full bg-gradient-to-r from-primary to-purple-600 transition-all duration-300 ease-out"
             style={{ width: `${readProgress}%` }}
           />
         </div>
@@ -211,7 +211,7 @@ export default function LessonPage() {
                 variant={completed ? "outline" : "default"}
                 className={completed
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
-                  : "bg-emerald-600 hover:bg-emerald-700"}
+                  : "bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25"}
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
                 {completed ? "Completed" : "Mark Complete"}
@@ -440,7 +440,7 @@ export default function LessonPage() {
                         <Button
                           onClick={() => setQuizSubmitted(true)}
                           disabled={Object.keys(quizAnswers).length < quizQuestions.length}
-                          className="bg-purple-600 hover:bg-purple-700"
+                          className="bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-600/25"
                         >
                           Submit Answers
                         </Button>

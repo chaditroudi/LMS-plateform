@@ -101,7 +101,7 @@ services:
       - lms-network
     restart: unless-stopped
 
-  # AI Tutor Service - FastAPI + LLM
+  # AI Tutor Service - FastAPI + OpenAI
   ai-tutor-service:
     build:
       context: ./services/ai-tutor-service
@@ -111,7 +111,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://lms_user:lms_password@postgres:5432/lms_courses
       - REDIS_URL=redis://redis:6379/2
-      - LLM_MODEL=llama2
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - LLM_MODEL=llama-3.3-70b-versatile
     depends_on:
       postgres:
         condition: service_healthy
@@ -202,9 +203,7 @@ services:
     ports:
       - "5680:5678"
     environment:
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=admin
+      - N8N_SECURE_COOKIE=false
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432

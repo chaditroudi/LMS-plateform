@@ -173,7 +173,7 @@ export default function LessonManagerPage({ params }: { params: Promise<{ id: st
               {course?.title || `Course #${courseId}`} — {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} className="shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30">
             <Plus className="mr-2 h-4 w-4" />
             Add Lesson
           </Button>
@@ -181,14 +181,14 @@ export default function LessonManagerPage({ params }: { params: Promise<{ id: st
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive animate-scale-in">
           {error}
         </div>
       )}
 
       {/* Create / Edit Form */}
       {showForm && (
-        <Card className="mb-8">
+        <Card className="mb-8 animate-scale-in shadow-lg shadow-black/5 border-0 ring-1 ring-border">
           <CardHeader>
             <CardTitle>{editingLesson ? "Edit Lesson" : "Add New Lesson"}</CardTitle>
             <CardDescription>
@@ -277,7 +277,7 @@ export default function LessonManagerPage({ params }: { params: Promise<{ id: st
       ) : (
         <div className="space-y-3">
           {lessons.map((lesson, idx) => (
-            <Card key={lesson.id} className="transition-all hover:shadow-md">
+            <Card key={lesson.id} className="transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-0 ring-1 ring-border hover:ring-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-1">

@@ -90,17 +90,17 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Welcome back{user?.name ? `, ${user.name}` : ""}!</p>
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Dashboard</h1>
+        <p className="mt-2 text-lg text-muted-foreground">Welcome back{user?.name ? `, ${user.name}` : ""}!</p>
       </div>
 
       {/* Stats Grid */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<BookOpen className="h-5 w-5 text-primary" />} label="Enrolled Courses" value={String(enrollments.length)} color="bg-primary/10" />
-        <StatCard icon={<Clock className="h-5 w-5 text-amber-600" />} label="Hours Learned" value={String(totalHours)} color="bg-amber-50" />
-        <StatCard icon={<Award className="h-5 w-5 text-emerald-600" />} label="Completed" value={String(totalCompleted)} color="bg-emerald-50" />
-        <StatCard icon={<TrendingUp className="h-5 w-5 text-purple-600" />} label="In Progress" value={String(enrollments.length - totalCompleted)} color="bg-purple-50" />
+        <StatCard icon={<BookOpen className="h-5 w-5 text-primary" />} label="Enrolled Courses" value={String(enrollments.length)} color="bg-gradient-to-br from-primary/10 to-primary/5" delay="stagger-1" />
+        <StatCard icon={<Clock className="h-5 w-5 text-amber-600" />} label="Hours Learned" value={String(totalHours)} color="bg-gradient-to-br from-amber-50 to-amber-50/50" delay="stagger-2" />
+        <StatCard icon={<Award className="h-5 w-5 text-emerald-600" />} label="Completed" value={String(totalCompleted)} color="bg-gradient-to-br from-emerald-50 to-emerald-50/50" delay="stagger-3" />
+        <StatCard icon={<TrendingUp className="h-5 w-5 text-purple-600" />} label="In Progress" value={String(enrollments.length - totalCompleted)} color="bg-gradient-to-br from-purple-50 to-purple-50/50" delay="stagger-4" />
       </div>
 
       <Tabs defaultValue="courses" className="space-y-6">
@@ -127,11 +127,11 @@ export default function DashboardPage() {
                 const info = courseDetails.get(e.course_id);
                 const pct = info && info.totalLessons > 0 ? Math.round((info.completedLessons / info.totalLessons) * 100) : 0;
                 return (
-                  <a key={e.id} href={`/courses/${e.course_id}`} className="block">
-                    <Card className="transition-all hover:shadow-md">
+                  <a key={e.id} href={`/courses/${e.course_id}`} className="block group">
+                    <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-0 ring-1 ring-border hover:ring-primary/20">
                       <CardContent className="p-5">
                         <div className="mb-3 flex items-center justify-between">
-                          <h3 className="font-semibold">{info?.title || `Course #${e.course_id}`}</h3>
+                          <h3 className="font-semibold transition-colors group-hover:text-primary">{info?.title || `Course #${e.course_id}`}</h3>
                           <Badge variant={pct >= 100 ? "success" : "secondary"}>
                             {pct >= 100 ? "Completed" : `${info?.completedLessons || 0}/${info?.totalLessons || 0} lessons`}
                           </Badge>
@@ -217,14 +217,14 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+function StatCard({ icon, label, value, color, delay }: { icon: React.ReactNode; label: string; value: string; color: string; delay?: string }) {
   return (
-    <Card>
+    <Card className={`transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 animate-fade-in-up ${delay || ""}`}>
       <CardContent className="flex items-center gap-4 p-5">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${color}`}>{icon}</div>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>{icon}</div>
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
         </div>
       </CardContent>
     </Card>

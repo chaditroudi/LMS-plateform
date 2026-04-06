@@ -110,54 +110,54 @@ export default function AdminDashboard() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Platform overview and user management</p>
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Admin Dashboard</h1>
+        <p className="mt-2 text-lg text-muted-foreground">Platform overview and user management</p>
       </div>
 
       {/* Stats Grid */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="animate-fade-in-up stagger-1 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
               <Users className="h-5 w-5 text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-bold">{totalUsers}</p>
+              <p className="text-2xl font-bold tracking-tight">{totalUsers}</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in-up stagger-2 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
               <BookOpen className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Courses</p>
-              <p className="text-2xl font-bold">{courses.length}</p>
+              <p className="text-2xl font-bold tracking-tight">{courses.length}</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in-up stagger-3 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
               <TrendingUp className="h-5 w-5 text-amber-600" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Enrollments</p>
-              <p className="text-2xl font-bold">{stats?.total_enrollments.toLocaleString() || 0}</p>
+              <p className="text-2xl font-bold tracking-tight">{stats?.total_enrollments.toLocaleString() || 0}</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in-up stagger-4 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 to-purple-100">
               <Activity className="h-5 w-5 text-purple-600" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Completion Rate</p>
-              <p className="text-2xl font-bold">{stats?.completion_rate || 0}%</p>
+              <p className="text-2xl font-bold tracking-tight">{stats?.completion_rate || 0}%</p>
             </div>
           </CardContent>
         </Card>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr key={u._id} className="border-b last:border-0">
+                      <tr key={u._id} className="border-b last:border-0 transition-colors hover:bg-muted/50">
                         <td className="py-3 pr-4 font-medium">{u.name}</td>
                         <td className="py-3 pr-4 text-muted-foreground">{u.email}</td>
                         <td className="py-3 pr-4">
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {courses.map((c) => (
-                      <tr key={c.id} className="border-b last:border-0">
+                      <tr key={c.id} className="border-b last:border-0 transition-colors hover:bg-muted/50">
                         <td className="py-3 pr-4 text-muted-foreground">#{c.id}</td>
                         <td className="py-3 pr-4">
                           <a href={`/courses/${c.id}`} className="font-medium text-primary hover:underline">

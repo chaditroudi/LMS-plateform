@@ -28,7 +28,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ event_type: 'enrollment', user_id: $('Enrollment Webhook').first().json.user_id, course_id: $('Enrollment Webhook').first().json.course_id, metadata: { course_title: $('Enrollment Webhook').first().json.course_title } }) }}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'enrollment', user_id: $('Enrollment Webhook').first().json.body.user_id, course_id: $('Enrollment Webhook').first().json.body.course_id, metadata: { course_title: $('Enrollment Webhook').first().json.body.course_title } }) }}",
         "options": {}
       },
       "id": "a1b2c3d4-0001-0001-0001-000000000002",
@@ -40,7 +40,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { status: 'processed', event: 'enrollment', user_id: $('Enrollment Webhook').first().json.user_id, course_id: $('Enrollment Webhook').first().json.course_id } }}",
+        "responseBody": "={{ { status: 'processed', event: 'enrollment', user_id: $('Enrollment Webhook').first().json.body.user_id, course_id: $('Enrollment Webhook').first().json.body.course_id } }}",
         "options": {}
       },
       "id": "a1b2c3d4-0001-0001-0001-000000000003",

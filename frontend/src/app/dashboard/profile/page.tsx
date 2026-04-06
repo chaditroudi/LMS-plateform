@@ -98,17 +98,17 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-        <p className="mt-1 text-muted-foreground">Manage your account settings</p>
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">My Profile</h1>
+        <p className="mt-2 text-lg text-muted-foreground">Manage your account settings</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Profile Card */}
-        <Card className="md:col-span-1">
+        <Card className="md:col-span-1 animate-fade-in-up stagger-1 shadow-lg shadow-black/5 border-0 ring-1 ring-border">
           <CardContent className="flex flex-col items-center p-6 text-center">
-            <Avatar className="mb-4 h-20 w-20">
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+            <Avatar className="mb-4 h-24 w-24 ring-4 ring-primary/10">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 via-purple-100 to-pink-100 text-primary text-2xl font-bold">
                 {profile.name
                   .split(" ")
                   .map((n) => n[0])
@@ -119,7 +119,7 @@ export default function ProfilePage() {
             </Avatar>
             <h2 className="text-lg font-bold">{profile.name}</h2>
             <p className="text-sm text-muted-foreground">{profile.email}</p>
-            <Badge className="mt-2" variant={profile.role === "admin" ? "destructive" : profile.role === "instructor" ? "default" : "secondary"}>
+            <Badge className="mt-3" variant={profile.role === "admin" ? "destructive" : profile.role === "instructor" ? "default" : "secondary"}>
               {profile.role}
             </Badge>
 
@@ -143,19 +143,19 @@ export default function ProfilePage() {
         </Card>
 
         {/* Edit Form */}
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 animate-fade-in-up stagger-2 shadow-lg shadow-black/5 border-0 ring-1 ring-border">
           <CardHeader>
             <CardTitle>Edit Profile</CardTitle>
             <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
             {msg && (
-              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 animate-scale-in">
                 {msg}
               </div>
             )}
             {error && (
-              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive animate-scale-in">
                 {error}
               </div>
             )}

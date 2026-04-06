@@ -50,23 +50,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[85vh] items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-[85vh] items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md animate-fade-in-up">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <UserPlus className="h-6 w-6 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 shadow-lg shadow-primary/25">
+            <UserPlus className="h-7 w-7 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start your learning journey today</p>
+          <p className="mt-2 text-sm text-muted-foreground">Start your learning journey today</p>
         </div>
-        <Card>
+        <Card className="shadow-xl shadow-black/5 border-0 ring-1 ring-border">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">Sign Up</CardTitle>
             <CardDescription>Fill in your details to create a new account</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive animate-scale-in">
                 {error}
               </div>
             )}
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    className="pl-10"
+                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
                     required
                   />
                 </div>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="pl-10"
+                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
                     required
                   />
                 </div>
@@ -111,36 +111,55 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 6 characters"
-                    className="pl-10"
+                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
                     required
                     minLength={6}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <select
-                    id="role"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                <Label htmlFor="role">I want to</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole("student")}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
+                      role === "student"
+                        ? "border-primary bg-primary/5 text-primary shadow-sm"
+                        : "border-border text-muted-foreground hover:border-primary/30 hover:bg-accent"
+                    }`}
                   >
-                    <option value="student">Student</option>
-                    <option value="instructor">Instructor</option>
-                  </select>
+                    <GraduationCap className={`h-6 w-6 ${role === "student" ? "text-primary" : "text-muted-foreground"}`} />
+                    Learn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("instructor")}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
+                      role === "instructor"
+                        ? "border-primary bg-primary/5 text-primary shadow-sm"
+                        : "border-border text-muted-foreground hover:border-primary/30 hover:bg-accent"
+                    }`}
+                  >
+                    <GraduationCap className={`h-6 w-6 ${role === "instructor" ? "text-primary" : "text-muted-foreground"}`} />
+                    Teach
+                  </button>
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Creating Account..." : "Create Account"}
+              <Button type="submit" disabled={loading} className="w-full shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30">
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Creating Account...
+                  </span>
+                ) : "Create Account"}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="justify-center border-t py-4">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <a href="/auth/login" className="font-medium text-primary hover:underline">
+              <a href="/auth/login" className="font-medium text-primary hover:underline underline-offset-4">
                 Sign In
               </a>
             </p>

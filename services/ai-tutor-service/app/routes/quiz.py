@@ -1,70 +1,85 @@
 """
 Quiz Generation Route — POST /api/ai/quiz/generate
 
-Generates multiple-choice quiz questions for a given course or lesson.
-The number of questions is configurable (default 5, up to the number of
-available sample questions).
-
-Request body  : QuizGenerateRequest { course_id, lesson_id?, num_questions }
-Response body : QuizResponse        { course_id, lesson_id, questions[] }
-
-Each question includes:
-  - question    : The question text.
-  - options     : List of QuizOption (label A–D, text, is_correct flag).
-  - explanation : Brief explanation of the correct answer.
-
-In production this endpoint uses an LLM to generate questions dynamically
-based on the actual lesson content. The current implementation returns a
-fixed set of sample questions for demonstration purposes.
+Generates multiple-choice quiz questions for a given course or lesson using
+the Ollama LLM. Falls back to sample questions if LLM is unavailable.
 """
 
+import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
+
+from app.llm import generate_json, is_groq_available
+from app.database import get_course_context, get_lesson_context
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
 class QuizGenerateRequest(BaseModel):
-    """Request body for quiz generation."""
-
     course_id: int
-    lesson_id: Optional[int] = None  # Scope to a specific lesson when provided
+    lesson_id: Optional[int] = None
     num_questions: int = 5
 
 
 class QuizOption(BaseModel):
-    """A single multiple-choice option for a quiz question."""
-
-    label: str       # e.g. "A", "B", "C", "D"
+    label: str
     text: str
     is_correct: bool = False
 
 
 class QuizQuestion(BaseModel):
-    """A single quiz question with its options and explanation."""
-
     question: str
     options: List[QuizOption]
-    explanation: str  # Shown to the learner after they answer
+    explanation: str
 
 
 class QuizResponse(BaseModel):
-    """Response body containing the generated quiz."""
-
     course_id: int
     lesson_id: Optional[int] = None
     questions: List[QuizQuestion]
 
 
-@router.post("/generate", response_model=QuizResponse)
-async def generate_quiz(request: QuizGenerateRequest):
-    """
-    AI-powered quiz generation based on course/lesson content.
-    In production, this uses LLM to generate contextual questions.
-    Currently returns sample quiz questions.
-    """
-    sample_questions = [
+QUIZ_PROMPT_TEMPLATE = """You are an expert quiz generator specializing in creating assessments tied directly to specific educational content.
+
+Generate exactly {num_questions} multiple-choice questions that are EXCLUSIVELY based on the lesson content below—never include questions about general knowledge or topics outside the lesson scope.
+
+LESSON CONTENT:
+{context}
+
+Core Requirements:
+- Every question must reference, test, or directly relate to material explicitly covered in the lesson above.
+- Do not add tangential information, common knowledge, or content from other sources.
+- Questions should verify that the learner understood and retained the specific concepts from the lesson.
+- Each question can be answered using ONLY information from the lesson.
+
+Return ONLY a valid JSON array with this exact structure (no other text):
+[
+  {{
+    "question": "The question text",
+    "options": [
+      {{"label": "A", "text": "Option text", "is_correct": false}},
+      {{"label": "B", "text": "Option text", "is_correct": true}},
+      {{"label": "C", "text": "Option text", "is_correct": false}},
+      {{"label": "D", "text": "Option text", "is_correct": false}}
+    ],
+    "explanation": "Brief explanation referencing the lesson content"
+  }}
+]
+
+Rules:
+- Each question must have exactly 4 options (A, B, C, D).
+- Exactly one option must be correct (is_correct: true).
+- Questions should test understanding, not just memorisation.
+- Vary difficulty from easy to moderate.
+- Return ONLY the JSON array, no markdown, no extra text."""
+
+
+def _fallback_questions() -> List[QuizQuestion]:
+    """Sample questions returned when LLM is unavailable."""
+    return [
         QuizQuestion(
             question="What is a variable in programming?",
             options=[
@@ -97,8 +112,67 @@ async def generate_quiz(request: QuizGenerateRequest):
         ),
     ]
 
+
+@router.post("/generate", response_model=QuizResponse)
+async def generate_quiz(request: QuizGenerateRequest):
+    """
+    AI-powered quiz generation based on course/lesson content.
+    Uses Ollama LLM to generate contextual questions.
+    Falls back to sample questions if unavailable.
+    """
+    if not await is_groq_available():
+        logger.warning("Ollama unavailable, returning fallback quiz questions")
+        return QuizResponse(
+            course_id=request.course_id,
+            lesson_id=request.lesson_id,
+            questions=_fallback_questions()[:request.num_questions],
+        )
+
+    # Build context from course/lesson data
+    if request.lesson_id:
+        context = get_lesson_context(request.course_id, request.lesson_id)
+        if not context:
+            context = get_course_context(request.course_id)
+    else:
+        context = get_course_context(request.course_id)
+
+    prompt = QUIZ_PROMPT_TEMPLATE.format(
+        num_questions=request.num_questions,
+        context=context,
+    )
+
+    try:
+        parsed = await generate_json(prompt)
+        if parsed and isinstance(parsed, list):
+            questions = []
+            for q in parsed[:request.num_questions]:
+                options = [
+                    QuizOption(
+                        label=opt.get("label", chr(65 + i)),
+                        text=opt.get("text", ""),
+                        is_correct=opt.get("is_correct", False),
+                    )
+                    for i, opt in enumerate(q.get("options", []))
+                ]
+                questions.append(
+                    QuizQuestion(
+                        question=q.get("question", ""),
+                        options=options,
+                        explanation=q.get("explanation", ""),
+                    )
+                )
+            if questions:
+                return QuizResponse(
+                    course_id=request.course_id,
+                    lesson_id=request.lesson_id,
+                    questions=questions,
+                )
+    except Exception as e:
+        logger.error("LLM quiz generation failed: %s", e)
+
+    # Fallback
     return QuizResponse(
         course_id=request.course_id,
         lesson_id=request.lesson_id,
-        questions=sample_questions[:request.num_questions],
+        questions=_fallback_questions()[:request.num_questions],
     )

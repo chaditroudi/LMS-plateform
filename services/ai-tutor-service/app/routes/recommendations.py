@@ -1,62 +1,70 @@
 """
 Recommendation Route — POST /api/ai/recommendations
 
-Returns a personalised list of recommended courses for a given user.
-The recommendation engine considers:
-  - The user's declared interests.
-  - The course they are currently enrolled in (if any).
-  - Their overall learning progression.
-
-Request body  : RecommendationRequest  { user_id, current_course_id?, interests[] }
-Response body : RecommendationResponse { user_id, recommendations[] }
-
-Each recommendation includes a course_id, human-readable title, a reason
-explaining why it was recommended, and a relevance score (0.0–1.0).
-
-In production this endpoint uses an LLM / collaborative-filtering model to
-produce truly personalised results. The current implementation returns a
-fixed sample list for demonstration purposes.
+Returns a personalised list of recommended courses for a given user using
+the Ollama LLM. Falls back to sample recommendations if LLM is unavailable.
 """
 
+import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
+
+from app.llm import generate_json, is_groq_available
+from app.database import get_all_courses_summary
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
 class RecommendationRequest(BaseModel):
-    """Request body for the course recommendation endpoint."""
-
     user_id: str
-    current_course_id: Optional[int] = None  # Course the user is currently studying
-    interests: List[str] = []               # User-declared topic interests
+    current_course_id: Optional[int] = None
+    interests: List[str] = []
 
 
 class CourseRecommendation(BaseModel):
-    """A single recommended course with its relevance score and reason."""
-
     course_id: int
     title: str
-    reason: str    # Human-readable explanation surfaced in the UI
-    score: float   # Relevance score in [0.0, 1.0]
+    reason: str
+    score: float
 
 
 class RecommendationResponse(BaseModel):
-    """Response body containing the recommendation list for a user."""
-
     user_id: str
     recommendations: List[CourseRecommendation]
 
 
-@router.post("/", response_model=RecommendationResponse)
-async def get_recommendations(request: RecommendationRequest):
-    """
-    AI-powered course recommendations.
-    In production, this analyzes user progress and interests using LLM.
-    Currently returns sample recommendations.
-    """
-    sample_recommendations = [
+RECOMMENDATION_PROMPT_TEMPLATE = """You are an AI course recommendation engine for an online learning platform.
+Based on the user's interests and the available courses, recommend the most relevant courses.
+
+User Interests: {interests}
+Currently Studying Course ID: {current_course_id}
+
+Available Courses:
+{courses_summary}
+
+Return ONLY a valid JSON array with this exact structure (no other text):
+[
+  {{
+    "course_id": 1,
+    "title": "Course Title",
+    "reason": "Why this course is recommended",
+    "score": 0.95
+  }}
+]
+
+Rules:
+- Recommend up to 5 courses, ranked by relevance (highest score first).
+- Score should be between 0.0 and 1.0.
+- Do NOT recommend the course the user is currently studying.
+- Provide a clear, personalised reason for each recommendation.
+- Return ONLY the JSON array, no markdown, no extra text."""
+
+
+def _fallback_recommendations() -> List[CourseRecommendation]:
+    return [
         CourseRecommendation(
             course_id=1,
             title="Introduction to Python",
@@ -77,7 +85,52 @@ async def get_recommendations(request: RecommendationRequest):
         ),
     ]
 
+
+@router.post("", response_model=RecommendationResponse)
+async def get_recommendations(request: RecommendationRequest):
+    """
+    AI-powered course recommendations.
+    Uses Ollama LLM to analyse user profile and course catalogue.
+    Falls back to sample recommendations if unavailable.
+    """
+    if not await is_groq_available():
+        logger.warning("Ollama unavailable, returning fallback recommendations")
+        return RecommendationResponse(
+            user_id=request.user_id,
+            recommendations=_fallback_recommendations(),
+        )
+
+    courses_summary = get_all_courses_summary()
+    interests = ", ".join(request.interests) if request.interests else "General learning"
+
+    prompt = RECOMMENDATION_PROMPT_TEMPLATE.format(
+        interests=interests,
+        current_course_id=request.current_course_id or "None",
+        courses_summary=courses_summary,
+    )
+
+    try:
+        parsed = await generate_json(prompt)
+        if parsed and isinstance(parsed, list):
+            recommendations = []
+            for r in parsed[:5]:
+                recommendations.append(
+                    CourseRecommendation(
+                        course_id=r.get("course_id", 0),
+                        title=r.get("title", "Unknown"),
+                        reason=r.get("reason", "Recommended for you"),
+                        score=min(max(float(r.get("score", 0.5)), 0.0), 1.0),
+                    )
+                )
+            if recommendations:
+                return RecommendationResponse(
+                    user_id=request.user_id,
+                    recommendations=recommendations,
+                )
+    except Exception as e:
+        logger.error("LLM recommendation failed: %s", e)
+
     return RecommendationResponse(
         user_id=request.user_id,
-        recommendations=sample_recommendations,
+        recommendations=_fallback_recommendations(),
     )

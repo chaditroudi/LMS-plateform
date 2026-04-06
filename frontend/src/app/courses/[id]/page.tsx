@@ -98,14 +98,18 @@ export default function CourseDetailPage() {
 
   if (loading) return (
     <div className="mx-auto max-w-4xl px-4 py-16 text-center text-muted-foreground">
-      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      <p className="mt-4">Loading course...</p>
+      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="mt-4 text-sm">Loading course...</p>
     </div>
   );
 
   if (!course) return (
-    <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+    <div className="mx-auto max-w-4xl px-4 py-16 text-center animate-fade-in">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+        <BookOpen className="h-8 w-8 text-muted-foreground/50" />
+      </div>
       <h1 className="text-2xl font-bold">Course Not Found</h1>
+      <p className="mt-2 text-muted-foreground">This course may have been removed or doesn&apos;t exist.</p>
       <Button variant="link" asChild className="mt-4"><a href="/courses"><ArrowLeft className="mr-1 h-4 w-4" /> Back to Courses</a></Button>
     </div>
   );
@@ -117,18 +121,18 @@ export default function CourseDetailPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-r from-primary to-purple-600 text-primary-foreground shadow-xl">
+      <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-br from-primary via-purple-600 to-pink-600 text-primary-foreground shadow-2xl shadow-primary/20 animate-fade-in">
         <CardContent className="p-8 lg:p-12">
           <Button variant="ghost" size="sm" asChild className="mb-4 text-primary-foreground/70 hover:bg-white/10 hover:text-primary-foreground">
             <a href="/courses"><ArrowLeft className="mr-1 h-4 w-4" /> All Courses</a>
           </Button>
-          <Badge className="mb-4 border-primary-foreground/20 bg-white/20 text-primary-foreground hover:bg-white/30">{course.category}</Badge>
-          <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
-          <p className="mb-6 max-w-3xl text-lg text-primary-foreground/80">{course.description}</p>
+          <Badge className="mb-4 border-primary-foreground/20 bg-white/20 text-primary-foreground backdrop-blur hover:bg-white/30">{course.category}</Badge>
+          <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">{course.title}</h1>
+          <p className="mb-6 max-w-3xl text-lg text-primary-foreground/80 leading-relaxed">{course.description}</p>
           <div className="flex flex-wrap gap-6 text-sm text-primary-foreground/80">
             <span className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> {lessons.length} lessons</span>
             <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> {totalDuration} min</span>
-            <span className="flex items-center gap-2"><Star className="h-4 w-4" /> {avgRating} rating</span>
+            <span className="flex items-center gap-2"><Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {avgRating} rating</span>
             <span className="flex items-center gap-2"><Users className="h-4 w-4" /> {reviews.length} reviews</span>
           </div>
         </CardContent>
@@ -252,7 +256,7 @@ export default function CourseDetailPage() {
         </div>
 
         <div>
-          <Card className="sticky top-20">
+          <Card className="sticky top-20 shadow-lg shadow-black/5 border-0 ring-1 ring-border">
             <CardContent className="p-6">
               <div className="mb-4 text-3xl font-bold text-primary">{course.is_free ? "Free" : `$${course.price}`}</div>
               {isEnrolled ? (
@@ -279,8 +283,8 @@ export default function CourseDetailPage() {
                 </>
               ) : (
                 <>
-                  <Button onClick={handleEnroll} className="mb-2 w-full" size="lg">{course.is_free ? "Enroll for Free" : "Buy & Enroll"}</Button>
-                  {enrollMsg && <p className="mb-4 text-center text-sm text-emerald-600">{enrollMsg}</p>}
+                  <Button onClick={handleEnroll} className="mb-2 w-full shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30" size="lg">{course.is_free ? "Enroll for Free" : "Buy & Enroll"}</Button>
+                  {enrollMsg && <p className="mb-4 text-center text-sm text-emerald-600 animate-scale-in">{enrollMsg}</p>}
                 </>
               )}
               <Separator className="my-4" />

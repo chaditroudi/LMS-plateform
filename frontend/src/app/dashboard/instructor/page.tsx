@@ -167,10 +167,10 @@ export default function InstructorDashboard() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Course Management</h1>
+          <p className="mt-2 text-lg text-muted-foreground">
             {user?.role === "admin" ? "Manage all platform courses" : "Create and manage your courses"}
           </p>
         </div>
@@ -179,6 +179,7 @@ export default function InstructorDashboard() {
             resetForm();
             setShowForm(true);
           }}
+          className="shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30"
         >
           <Plus className="mr-2 h-4 w-4" />
           New Course
@@ -186,14 +187,14 @@ export default function InstructorDashboard() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive animate-scale-in">
           {error}
         </div>
       )}
 
       {/* Create / Edit Form */}
       {showForm && (
-        <Card className="mb-8">
+        <Card className="mb-8 animate-scale-in shadow-lg shadow-black/5 border-0 ring-1 ring-border">
           <CardHeader>
             <CardTitle>{editingCourse ? "Edit Course" : "Create New Course"}</CardTitle>
             <CardDescription>
@@ -293,7 +294,7 @@ export default function InstructorDashboard() {
       ) : (
         <div className="space-y-4">
           {courses.map((course) => (
-            <Card key={course.id} className="transition-all hover:shadow-md">
+            <Card key={course.id} className="transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-0 ring-1 ring-border hover:ring-primary/20">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

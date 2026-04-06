@@ -46,22 +46,22 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md animate-fade-in-up">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <LogIn className="h-6 w-6 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 shadow-lg shadow-primary/25">
+            <LogIn className="h-7 w-7 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to continue learning</p>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to continue your learning journey</p>
         </div>
-        <Card>
+        <Card className="shadow-xl shadow-black/5 border-0 ring-1 ring-border">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">Sign In</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive animate-scale-in">
                 {error}
               </div>
             )}
@@ -76,7 +76,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="pl-10"
+                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
                     required
                   />
                 </div>
@@ -91,20 +91,25 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="pl-10"
+                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
                     required
                   />
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Signing in..." : "Sign In"}
+              <Button type="submit" disabled={loading} className="w-full shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30">
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Signing in...
+                  </span>
+                ) : "Sign In"}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="justify-center border-t py-4">
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
-              <a href="/auth/register" className="font-medium text-primary hover:underline">
+              <a href="/auth/register" className="font-medium text-primary hover:underline underline-offset-4">
                 Sign Up
               </a>
             </p>

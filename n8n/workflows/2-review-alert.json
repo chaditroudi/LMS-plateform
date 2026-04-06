@@ -19,7 +19,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://ai-tutor-service:8004/api/ai/chat/",
+        "url": "http://ai-tutor-service:8004/api/ai/chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -28,7 +28,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ course_id: $('Review Webhook').first().json.course_id, message: 'Analyze this student feedback for course ' + $('Review Webhook').first().json.course_id + ': ' + $('Review Webhook').first().json.comment + ' (rating ' + $('Review Webhook').first().json.rating + '/5). Summarize the key concerns and sentiment in one sentence.', history: [] }) }}",
+        "jsonBody": "={{ JSON.stringify({ course_id: $('Review Webhook').first().json.body.course_id, message: 'Analyze this student feedback for course ' + $('Review Webhook').first().json.body.course_id + ': ' + $('Review Webhook').first().json.body.comment + ' (rating ' + $('Review Webhook').first().json.body.rating + '/5). Summarize the key concerns and sentiment in one sentence.', history: [] }) }}",
         "options": {}
       },
       "id": "b2c3d4e5-0002-0002-0002-000000000002",
@@ -49,7 +49,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ event_type: 'review_submitted', user_id: $('Review Webhook').first().json.user_id, course_id: $('Review Webhook').first().json.course_id, metadata: { rating: $('Review Webhook').first().json.rating, comment: $('Review Webhook').first().json.comment, ai_summary: $('Enrich with AI Tutor').first().json.reply } }) }}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'review_submitted', user_id: $('Review Webhook').first().json.body.user_id, course_id: $('Review Webhook').first().json.body.course_id, metadata: { rating: $('Review Webhook').first().json.body.rating, comment: $('Review Webhook').first().json.body.comment, ai_summary: $('Enrich with AI Tutor').first().json.reply } }) }}",
         "options": {}
       },
       "id": "b2c3d4e5-0002-0002-0002-000000000003",
@@ -69,7 +69,7 @@
           "conditions": [
             {
               "id": "cond-rating-low",
-              "leftValue": "={{ $('Review Webhook').first().json.rating }}",
+              "leftValue": "={{ $('Review Webhook').first().json.body.rating }}",
               "rightValue": 3,
               "operator": {
                 "type": "number",
@@ -99,7 +99,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ event_type: 'instructor_notification', user_id: $('Review Webhook').first().json.user_id, course_id: $('Review Webhook').first().json.course_id, metadata: { alert: 'Low rating - instructor review recommended', rating: $('Review Webhook').first().json.rating, ai_summary: $('Enrich with AI Tutor').first().json.reply, action: 'Review course content and reach out to student' } }) }}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'instructor_notification', user_id: $('Review Webhook').first().json.body.user_id, course_id: $('Review Webhook').first().json.body.course_id, metadata: { alert: 'Low rating - instructor review recommended', rating: $('Review Webhook').first().json.body.rating, ai_summary: $('Enrich with AI Tutor').first().json.reply, action: 'Review course content and reach out to student' } }) }}",
         "options": {}
       },
       "id": "b2c3d4e5-0002-0002-0002-000000000005",
@@ -111,7 +111,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { status: 'processed', event: 'review_submitted', course_id: $('Review Webhook').first().json.course_id, rating: $('Review Webhook').first().json.rating, notified: $('Review Webhook').first().json.rating < 3 } }}",
+        "responseBody": "={{ { status: 'processed', event: 'review_submitted', course_id: $('Review Webhook').first().json.body.course_id, rating: $('Review Webhook').first().json.body.rating, notified: $('Review Webhook').first().json.body.rating < 3 } }}",
         "options": {}
       },
       "id": "b2c3d4e5-0002-0002-0002-000000000006",

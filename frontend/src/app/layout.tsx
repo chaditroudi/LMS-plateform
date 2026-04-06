@@ -34,9 +34,33 @@ export default function RootLayout({
         <div className="relative flex min-h-screen flex-col">
           <Navbar />
           <main className="flex-1">{children}</main>
-          <footer className="border-t bg-muted/50">
-            <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm text-muted-foreground">
-              &copy; 2026 LMS Platform. Master DevOps &amp; Cloud - M1.
+          <footer className="border-t bg-gradient-to-b from-muted/50 to-muted/80">
+            <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold tracking-wider uppercase text-foreground">Platform</h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li><a href="/courses" className="transition-colors hover:text-primary">Browse Courses</a></li>
+                    <li><a href="/dashboard" className="transition-colors hover:text-primary">Dashboard</a></li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold tracking-wider uppercase text-foreground">Resources</h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li><a href="/auth/register" className="transition-colors hover:text-primary">Get Started</a></li>
+                    <li><a href="/auth/login" className="transition-colors hover:text-primary">Sign In</a></li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold tracking-wider uppercase text-foreground">About</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    AI-powered learning platform built with microservices architecture. Master DevOps & Cloud - M1.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 border-t pt-6 text-center text-sm text-muted-foreground">
+                &copy; {new Date().getFullYear()} LMS Platform. All rights reserved.
+              </div>
             </div>
           </footer>
         </div>
