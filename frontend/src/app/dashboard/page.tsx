@@ -1,63 +1,74 @@
-/**
- * Dashboard Page — /dashboard
- *
- * Client component that serves as the personalised learner home screen.
- * Redirects to /auth/login when no authenticated user is found in localStorage.
- *
- * Sections rendered:
- *   1. Stat cards  — Enrolled courses, hours learned, completed courses,
- *                     and the platform-wide completion rate.
- *   2. My Courses  — For each enrollment the course title and a progress
- *                     bar (completed lessons / total lessons) are shown.
- *   3. Platform Analytics — Popular courses and monthly enrollment trends
- *                            sourced from the analytics service.
- *   4. AI Recommendations — Personalised course suggestions from the
- *                            AI tutor service.
- *
- * Data fetching strategy:
- *   - Platform stats and enrollments are fetched in parallel on mount.
- *   - Per-enrolment course detail and progress are fetched concurrently
- *     inside Promise.all after the enrollment list is available.
- *   - AI recommendations are attempted last and failures are silently
- *     ignored to keep the dashboard functional if the AI service is down.
- */
-
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { BookOpen, Clock, Award, TrendingUp, BarChart3, ArrowRight, Sparkles } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowRight, Award, BookOpen, ChartSpline, Clock, Sparkles, TrendingUp } from "lucide-react";
 import {
-  fetchDashboardStats, getUserEnrollments, fetchCourse, getUserProgress, getRecommendations, getProfile, LearningPreferences,
+  fetchDashboardStats,
+  getUserEnrollments,
+  fetchCourse,
+  getUserProgress,
+  getRecommendations,
+  getProfile,
+  LearningPreferences,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface Enrollment { id: number; user_id: string; course_id: number; enrolled_at: string; }
-interface CourseInfo { id: number; title: string; lessons: { id: number }[]; }
-interface ProgressItem { lesson_id: number; completed: boolean; }
+interface Enrollment {
+  id: number;
+  user_id: string;
+  course_id: number;
+  enrolled_at: string;
+}
+
+interface CourseInfo {
+  id: number;
+  title: string;
+  lessons: { id: number }[];
+}
+
+interface ProgressItem {
+  lesson_id: number;
+  completed: boolean;
+}
+
 interface DashboardStats {
-  total_views: number; total_enrollments: number; active_users: number; completion_rate: number;
+  total_views: number;
+  total_enrollments: number;
+  active_users: number;
+  completion_rate: number;
   popular_courses: { label: string; value: number }[];
   enrollment_trends: { label: string; value: number }[];
 }
-interface Recommendation { course_id: number; title: string; reason: string; score: number; }
-interface UserProfileResponse { _id: string; learning_preferences?: LearningPreferences; }
+
+interface Recommendation {
+  course_id: number;
+  title: string;
+  reason: string;
+  score: number;
+}
+
+interface UserProfileResponse {
+  _id: string;
+  learning_preferences?: LearningPreferences;
+}
 
 function hasMeaningfulPreferences(preferences?: LearningPreferences) {
   return Boolean(
     preferences?.interests?.some((item) => item.trim()) ||
-    preferences?.learning_goal?.trim()
+      preferences?.learning_goal?.trim()
   );
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<{ _id: string; name: string } | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [courseDetails, setCourseDetails] = useState<Map<number, { title: string; totalLessons: number; completedLessons: number }>>(new Map());
+  const [courseDetails, setCourseDetails] = useState<
+    Map<number, { title: string; totalLessons: number; completedLessons: number }>
+  >(new Map());
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [hasPreferenceSetup, setHasPreferenceSetup] = useState(false);
@@ -67,94 +78,200 @@ export default function DashboardPage() {
     async function load() {
       try {
         const stored = localStorage.getItem("user");
-        if (!stored) { window.location.href = "/auth/login"; return; }
-        const u = JSON.parse(stored);
-        setUser(u);
+        if (!stored) {
+          window.location.href = "/auth/login";
+          return;
+        }
+
+        const parsedUser = JSON.parse(stored);
+        setUser(parsedUser);
+
         const [enrs, dashStats, fullProfile] = await Promise.all([
-          getUserEnrollments(u._id),
+          getUserEnrollments(parsedUser._id),
           fetchDashboardStats(),
           getProfile() as Promise<UserProfileResponse | null>,
         ]);
+
         setHasPreferenceSetup(hasMeaningfulPreferences(fullProfile?.learning_preferences));
-        setEnrollments(enrs); setStats(dashStats);
+        setEnrollments(enrs);
+        setStats(dashStats);
+
         const details = new Map<number, { title: string; totalLessons: number; completedLessons: number }>();
-        await Promise.all(enrs.map(async (e: Enrollment) => {
-          try {
-            const [course, progress]: [CourseInfo, ProgressItem[]] = await Promise.all([fetchCourse(e.course_id), getUserProgress(e.course_id, u._id)]);
-            details.set(e.course_id, { title: course.title, totalLessons: course.lessons?.length || 0, completedLessons: progress.filter((p) => p.completed).length });
-          } catch { /* skip */ }
-        }));
+        await Promise.all(
+          enrs.map(async (enrollment: Enrollment) => {
+            try {
+              const [course, progress]: [CourseInfo, ProgressItem[]] = await Promise.all([
+                fetchCourse(enrollment.course_id),
+                getUserProgress(enrollment.course_id, parsedUser._id),
+              ]);
+
+              details.set(enrollment.course_id, {
+                title: course.title,
+                totalLessons: course.lessons?.length || 0,
+                completedLessons: progress.filter((item) => item.completed).length,
+              });
+            } catch {
+              // ignore per-course failures
+            }
+          })
+        );
         setCourseDetails(details);
+
         try {
-          const recs = await getRecommendations(u._id, undefined, fullProfile?.learning_preferences);
+          const recs = await getRecommendations(
+            parsedUser._id,
+            undefined,
+            fullProfile?.learning_preferences
+          );
           setRecommendations(recs.recommendations || []);
-        } catch { /* ignore */ }
-      } catch { /* ignore */ } finally { setLoading(false); }
+        } catch {
+          // ignore recommendation failures
+        }
+      } catch {
+        // ignore global load failures
+      } finally {
+        setLoading(false);
+      }
     }
+
     load();
   }, []);
 
-  if (loading) return (
-    <div className="mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground">
-      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      <p className="mt-4">Loading dashboard...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="app-shell py-16 text-center text-muted-foreground">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="mt-4">Loading dashboard...</p>
+      </div>
+    );
+  }
 
-  const totalCompleted = Array.from(courseDetails.values()).filter((c) => c.totalLessons > 0 && c.completedLessons >= c.totalLessons).length;
-  const totalHours = Math.round(Array.from(courseDetails.values()).reduce((s, c) => s + c.completedLessons * 15, 0) / 60);
+  const totalCompleted = Array.from(courseDetails.values()).filter(
+    (course) => course.totalLessons > 0 && course.completedLessons >= course.totalLessons
+  ).length;
+  const totalHours = Math.round(
+    Array.from(courseDetails.values()).reduce(
+      (sum, course) => sum + course.completedLessons * 15,
+      0
+    ) / 60
+  );
+  const inProgress = Math.max(enrollments.length - totalCompleted, 0);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-8 animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Dashboard</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Welcome back{user?.name ? `, ${user.name}` : ""}!</p>
+    <div className="app-shell space-y-8">
+      <section className="hero-shell px-6 py-8 sm:px-8 lg:px-10">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="eyebrow">Learner workspace</p>
+            <h1 className="mt-5 font-display text-5xl leading-[0.9] text-foreground sm:text-6xl">
+              Welcome back{user?.name ? `, ${user.name}` : ""}.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+              Your refreshed dashboard brings active courses, learning momentum, platform insights, and AI recommendations into one more polished workspace.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <span className="stat-chip">
+                <BookOpen className="h-3.5 w-3.5 text-primary" />
+                {enrollments.length} active courses
+              </span>
+              <span className="stat-chip">
+                <Clock className="h-3.5 w-3.5 text-accent" />
+                {totalHours} hours learned
+              </span>
+            </div>
+          </div>
+
+          <div className="spotlight-panel">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/65">Recommendation engine</p>
+            <h2 className="mt-4 font-display text-4xl leading-[0.92] text-white">
+              {hasPreferenceSetup ? "Personalization is active" : "Finish your learner profile"}
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-white/75">
+              {hasPreferenceSetup
+                ? "Your profile is already shaping tailored suggestions. The recommendations tab is ready with relevant next steps."
+                : "Add your interests and learning goal in the profile studio to unlock more useful AI recommendations."}
+            </p>
+            <div className="mt-6">
+              <Button asChild className="bg-white text-foreground hover:bg-white/90">
+                <a href={hasPreferenceSetup ? "/dashboard#recommended" : "/dashboard/profile"}>
+                  {hasPreferenceSetup ? "Review recommendations" : "Open profile setup"}
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="data-grid">
+        <MetricCard icon={<BookOpen className="h-5 w-5 text-primary" />} label="Enrolled" value={String(enrollments.length)} helper="Courses in your workspace" />
+        <MetricCard icon={<Clock className="h-5 w-5 text-accent" />} label="Hours learned" value={String(totalHours)} helper="Estimated study time completed" />
+        <MetricCard icon={<Award className="h-5 w-5 text-emerald-600" />} label="Completed" value={String(totalCompleted)} helper="Courses finished end-to-end" />
+        <MetricCard icon={<TrendingUp className="h-5 w-5 text-sky-600" />} label="In progress" value={String(inProgress)} helper="Courses still underway" />
       </div>
 
-      {/* Stats Grid */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<BookOpen className="h-5 w-5 text-primary" />} label="Enrolled Courses" value={String(enrollments.length)} color="bg-gradient-to-br from-primary/10 to-primary/5" delay="stagger-1" />
-        <StatCard icon={<Clock className="h-5 w-5 text-amber-600" />} label="Hours Learned" value={String(totalHours)} color="bg-gradient-to-br from-amber-50 to-amber-50/50" delay="stagger-2" />
-        <StatCard icon={<Award className="h-5 w-5 text-emerald-600" />} label="Completed" value={String(totalCompleted)} color="bg-gradient-to-br from-emerald-50 to-emerald-50/50" delay="stagger-3" />
-        <StatCard icon={<TrendingUp className="h-5 w-5 text-purple-600" />} label="In Progress" value={String(enrollments.length - totalCompleted)} color="bg-gradient-to-br from-purple-50 to-purple-50/50" delay="stagger-4" />
-      </div>
-
-      <Tabs defaultValue="courses" className="space-y-6">
+      <Tabs defaultValue="courses" className="space-y-6" id="recommended">
         <TabsList>
           <TabsTrigger value="courses">My Courses</TabsTrigger>
-          <TabsTrigger value="analytics">Platform Analytics</TabsTrigger>
+          <TabsTrigger value="analytics">Platform Signals</TabsTrigger>
           <TabsTrigger value="recommendations">Recommended</TabsTrigger>
         </TabsList>
 
-        {/* My Courses */}
         <TabsContent value="courses">
           {enrollments.length === 0 ? (
-            <Card className="text-center">
+            <Card className="bg-white/80 text-center">
               <CardContent className="py-12">
-                <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-                <h3 className="text-lg font-semibold">No courses yet</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Start learning by enrolling in a course.</p>
-                <Button className="mt-4" asChild><a href="/courses">Browse Courses <ArrowRight className="ml-1 h-4 w-4" /></a></Button>
+                <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/45" />
+                <h3 className="text-2xl font-semibold text-foreground">No courses enrolled yet</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Browse the refreshed catalog and add your first learning path.
+                </p>
+                <Button className="mt-5" asChild>
+                  <a href="/courses">
+                    Browse courses
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {enrollments.map((e) => {
-                const info = courseDetails.get(e.course_id);
-                const pct = info && info.totalLessons > 0 ? Math.round((info.completedLessons / info.totalLessons) * 100) : 0;
+            <div className="grid gap-4">
+              {enrollments.map((enrollment) => {
+                const info = courseDetails.get(enrollment.course_id);
+                const percent =
+                  info && info.totalLessons > 0
+                    ? Math.round((info.completedLessons / info.totalLessons) * 100)
+                    : 0;
+
                 return (
-                  <a key={e.id} href={`/courses/${e.course_id}`} className="block group">
-                    <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-0 ring-1 ring-border hover:ring-primary/20">
-                      <CardContent className="p-5">
-                        <div className="mb-3 flex items-center justify-between">
-                          <h3 className="font-semibold transition-colors group-hover:text-primary">{info?.title || `Course #${e.course_id}`}</h3>
-                          <Badge variant={pct >= 100 ? "success" : "secondary"}>
-                            {pct >= 100 ? "Completed" : `${info?.completedLessons || 0}/${info?.totalLessons || 0} lessons`}
-                          </Badge>
+                  <a key={enrollment.id} href={`/courses/${enrollment.course_id}`} className="block group">
+                    <Card className="bg-white/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_34px_80px_-52px_rgba(15,48,80,0.42)]">
+                      <CardContent className="grid gap-5 p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h3 className="text-xl font-semibold text-foreground transition-colors group-hover:text-primary">
+                              {info?.title || `Course #${enrollment.course_id}`}
+                            </h3>
+                            <Badge variant={percent >= 100 ? "success" : "secondary"}>
+                              {percent >= 100
+                                ? "Completed"
+                                : `${info?.completedLessons || 0}/${info?.totalLessons || 0} lessons`}
+                            </Badge>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Continue where you left off with stronger progress visibility and cleaner navigation.
+                          </p>
+                          <div className="mt-4">
+                            <Progress value={percent} className="h-2.5" />
+                            <div className="mt-2 flex items-center justify-between text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              <span>Course progress</span>
+                              <span>{percent}%</span>
+                            </div>
+                          </div>
                         </div>
-                        <Progress value={pct} className="h-2" />
-                        <p className="mt-2 text-right text-xs text-muted-foreground">{pct}% complete</p>
+                        <div className="flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                          Open course
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
                       </CardContent>
                     </Card>
                   </a>
@@ -164,91 +281,125 @@ export default function DashboardPage() {
           )}
         </TabsContent>
 
-        {/* Platform Analytics */}
         <TabsContent value="analytics">
           {stats && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Card className="text-center"><CardContent className="py-4">
-                  <div className="text-2xl font-bold text-primary">{stats.total_views.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Total Views</div>
-                </CardContent></Card>
-                <Card className="text-center"><CardContent className="py-4">
-                  <div className="text-2xl font-bold text-emerald-600">{stats.total_enrollments.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Enrollments</div>
-                </CardContent></Card>
-                <Card className="text-center"><CardContent className="py-4">
-                  <div className="text-2xl font-bold text-amber-600">{stats.active_users.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Active Users</div>
-                </CardContent></Card>
-                <Card className="text-center"><CardContent className="py-4">
-                  <div className="text-2xl font-bold text-purple-600">{stats.completion_rate}%</div>
-                  <div className="text-xs text-muted-foreground">Completion Rate</div>
-                </CardContent></Card>
+              <div className="data-grid">
+                <MetricCard icon={<ChartSpline className="h-5 w-5 text-primary" />} label="Total views" value={stats.total_views.toLocaleString()} helper="Platform page views" />
+                <MetricCard icon={<BookOpen className="h-5 w-5 text-emerald-600" />} label="Enrollments" value={stats.total_enrollments.toLocaleString()} helper="All enrollments tracked" />
+                <MetricCard icon={<Sparkles className="h-5 w-5 text-accent" />} label="Active users" value={stats.active_users.toLocaleString()} helper="Current active learners" />
+                <MetricCard icon={<TrendingUp className="h-5 w-5 text-sky-600" />} label="Completion rate" value={`${stats.completion_rate}%`} helper="Cross-platform completion signal" />
               </div>
-              <Card>
-                <CardHeader><CardTitle className="text-lg">Popular Courses</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {stats.popular_courses.map((c, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i + 1}</span>
-                        <div className="flex-1">
-                          <div className="mb-1 flex items-center justify-between">
-                            <span className="text-sm font-medium">{c.label}</span>
-                            <span className="text-xs text-muted-foreground">{c.value} enrollments</span>
+
+              <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+                <Card className="bg-white/80">
+                  <CardHeader>
+                    <CardTitle>Popular courses</CardTitle>
+                    <CardDescription>What learners are engaging with most right now.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {stats.popular_courses.map((course, index) => (
+                      <div key={`${course.label}-${index}`} className="rounded-[1.35rem] bg-background/80 p-4">
+                        <div className="mb-3 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                              {index + 1}
+                            </span>
+                            <span className="font-medium text-foreground">{course.label}</span>
                           </div>
-                          <Progress value={(c.value / (stats.popular_courses[0]?.value || 1)) * 100} className="h-1.5" />
+                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            {course.value} enrollments
+                          </span>
                         </div>
+                        <Progress
+                          value={(course.value / (stats.popular_courses[0]?.value || 1)) * 100}
+                          className="h-2"
+                        />
                       </div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white/80">
+                  <CardHeader>
+                    <CardTitle>Enrollment trends</CardTitle>
+                    <CardDescription>Momentum across recent periods.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {stats.enrollment_trends.map((trend, index) => (
+                      <div key={`${trend.label}-${index}`} className="rounded-[1.35rem] bg-background/80 p-4">
+                        <div className="mb-3 flex items-center justify-between text-sm">
+                          <span className="font-medium text-foreground">{trend.label}</span>
+                          <span className="text-muted-foreground">{trend.value}</span>
+                        </div>
+                        <Progress
+                          value={
+                            (trend.value /
+                              Math.max(...stats.enrollment_trends.map((item) => item.value), 1)) *
+                            100
+                          }
+                          className="h-2.5"
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </TabsContent>
 
-        {/* Recommendations */}
         <TabsContent value="recommendations">
           {!hasPreferenceSetup ? (
-            <Card className="text-center">
+            <Card className="bg-white/80 text-center">
               <CardContent className="py-12">
-                <Sparkles className="mx-auto mb-4 h-12 w-12 text-amber-500/60" />
-                <h3 className="text-lg font-semibold">Set your AI recommendation goal first</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Add a learning goal and a few interests in your profile to unlock personalized AI recommendations.
+                <Sparkles className="mx-auto mb-4 h-12 w-12 text-accent/70" />
+                <h3 className="text-2xl font-semibold text-foreground">Set your recommendation goal first</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Add a learning goal and a few interests in your profile studio so the AI can recommend stronger next steps.
                 </p>
-                <Button className="mt-4" asChild>
-                  <a href="/dashboard/profile">Open Profile <ArrowRight className="ml-1 h-4 w-4" /></a>
+                <Button className="mt-5" asChild>
+                  <a href="/dashboard/profile">
+                    Open profile
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
                 </Button>
               </CardContent>
             </Card>
           ) : recommendations.length === 0 ? (
-            <Card className="text-center">
+            <Card className="bg-white/80 text-center">
               <CardContent className="py-12">
-                <Sparkles className="mx-auto mb-4 h-12 w-12 text-amber-500/60" />
-                <h3 className="text-lg font-semibold">No matching recommendations yet</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Try a clearer goal and simpler interests in your profile, like `become a data analyst` and `python, data science`.
+                <Sparkles className="mx-auto mb-4 h-12 w-12 text-primary/55" />
+                <h3 className="text-2xl font-semibold text-foreground">No strong matches yet</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Try a clearer learning goal in your profile, like becoming a frontend developer or preparing for DevOps work.
                 </p>
-                <Button className="mt-4" asChild>
-                  <a href="/dashboard/profile">Update Preferences <ArrowRight className="ml-1 h-4 w-4" /></a>
+                <Button className="mt-5" variant="outline" asChild>
+                  <a href="/dashboard/profile">Update preferences</a>
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {recommendations.map((r) => (
-                <a key={r.course_id} href={`/courses/${r.course_id}`} className="group">
-                  <Card className="transition-all hover:shadow-md">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-amber-500" />
-                        <CardTitle className="text-base transition-colors group-hover:text-primary">{r.title}</CardTitle>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {recommendations.map((recommendation) => (
+                <a key={recommendation.course_id} href={`/courses/${recommendation.course_id}`} className="group block">
+                  <Card className="h-full bg-white/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_34px_80px_-52px_rgba(15,48,80,0.42)]">
+                    <CardContent className="flex h-full flex-col p-6">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,hsl(var(--foreground)),hsl(var(--primary)))] text-primary-foreground">
+                        <ChartSpline className="h-5 w-5" />
                       </div>
-                    </CardHeader>
-                    <CardContent><CardDescription>{r.reason}</CardDescription></CardContent>
+                      <h3 className="mt-5 text-2xl font-semibold text-foreground transition-colors group-hover:text-primary">
+                        {recommendation.title}
+                      </h3>
+                      <p className="mt-3 flex-1 text-sm leading-7 text-muted-foreground">{recommendation.reason}</p>
+                      <div className="mt-5 flex items-center justify-between">
+                        <Badge variant="secondary">Score {Math.round(recommendation.score * 100)}%</Badge>
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                          Explore
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </CardContent>
                   </Card>
                 </a>
               ))}
@@ -260,15 +411,26 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, color, delay }: { icon: React.ReactNode; label: string; value: string; color: string; delay?: string }) {
+function MetricCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  helper: string;
+}) {
   return (
-    <Card className={`transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 animate-fade-in-up ${delay || ""}`}>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>{icon}</div>
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold tracking-tight">{value}</p>
+    <Card className="bg-white/80">
+      <CardContent className="p-5">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,hsl(var(--secondary)),hsl(var(--card)))] shadow-[0_18px_40px_-30px_rgba(15,48,80,0.28)]">
+          {icon}
         </div>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
+        <p className="mt-2 text-3xl font-semibold text-foreground">{value}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );

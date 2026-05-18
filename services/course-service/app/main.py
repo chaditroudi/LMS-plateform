@@ -23,7 +23,7 @@ Routes summary:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import courses, lessons, enrollments, reviews
+from app.routes import courses, lessons, enrollments, reviews, payments, media
 from app.database import engine, Base
 
 # Create database tables
@@ -49,6 +49,8 @@ app.include_router(courses.router, prefix="/api/courses", tags=["courses"])
 app.include_router(lessons.router, prefix="/api/courses", tags=["lessons"])
 app.include_router(enrollments.router, prefix="/api/courses", tags=["enrollments"])
 app.include_router(reviews.router, prefix="/api/courses", tags=["reviews"])
+app.include_router(payments.router, prefix="/api/courses", tags=["payments"])
+app.include_router(media.router, prefix="/api/courses", tags=["media"])
 
 
 @app.get("/health")

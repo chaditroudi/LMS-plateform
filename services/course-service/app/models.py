@@ -41,6 +41,7 @@ class Course(Base):
     lessons = relationship("Lesson", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="course", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="course", cascade="all, delete-orphan")
 
 
 class Lesson(Base):
@@ -120,3 +121,24 @@ class Review(Base):
     course = relationship("Course", back_populates="reviews")
 
     __table_args__ = (UniqueConstraint("user_id", "course_id"),)
+
+
+class Payment(Base):
+    """Tracks Stripe checkout sessions for paid course purchases."""
+
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(255), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"))
+    stripe_checkout_session_id = Column(String(255), nullable=False, unique=True, index=True)
+    stripe_payment_intent_id = Column(String(255))
+    customer_email = Column(String(255))
+    amount = Column(Float, default=0.0)
+    currency = Column(String(16), default="usd")
+    status = Column(String(64), default="pending")
+    fulfilled_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    course = relationship("Course", back_populates="payments")

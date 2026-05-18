@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Users, BookOpen, TrendingUp, BarChart3, Eye, ArrowUpDown,
-  Shield, GraduationCap, UserCheck, Activity,
-} from "lucide-react";
-import {
-  fetchUsers, fetchCourses, fetchDashboardStats, fetchEvents,
-} from "@/lib/api";
+import React, { useEffect, useState } from "react";
+import { Activity, Eye, Shield, UserCheck } from "lucide-react";
+import { fetchCourses, fetchDashboardStats, fetchEvents, fetchUsers } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UserItem {
   _id: string;
@@ -62,9 +56,17 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
-    if (!stored) { window.location.href = "/auth/login"; return; }
-    const u = JSON.parse(stored);
-    if (u.role !== "admin") { window.location.href = "/dashboard"; return; }
+    if (!stored) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (parsed.role !== "admin") {
+      window.location.href = "/dashboard";
+      return;
+    }
+
     loadData();
   }, []);
 
@@ -76,13 +78,18 @@ export default function AdminDashboard() {
         fetchDashboardStats(),
         fetchEvents({ limit: 50 }),
       ]);
+
       setUsers(usersData.users || []);
       setTotalUsers(usersData.pagination?.total || 0);
       setTotalPages(usersData.pagination?.pages || 1);
       setCourses(coursesData || []);
       setStats(statsData);
       setEvents(eventsData || []);
-    } catch { /* ignore */ } finally { setLoading(false); }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function loadUsers(page: number) {
@@ -91,76 +98,52 @@ export default function AdminDashboard() {
       setUsers(data.users || []);
       setUserPage(page);
       setTotalPages(data.pagination?.pages || 1);
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
   }
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground">
+      <div className="app-shell py-16 text-center text-muted-foreground">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="mt-4">Loading admin dashboard...</p>
+        <p className="mt-4">Loading admin control room...</p>
       </div>
     );
   }
 
-  const studentCount = users.filter((u) => u.role === "student").length;
-  const instructorCount = users.filter((u) => u.role === "instructor").length;
-  const adminCount = users.filter((u) => u.role === "admin").length;
+  const studentCount = users.filter((user) => user.role === "student").length;
+  const instructorCount = users.filter((user) => user.role === "instructor").length;
+  const adminCount = users.filter((user) => user.role === "admin").length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-8 animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Admin Dashboard</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Platform overview and user management</p>
-      </div>
+    <div className="app-shell space-y-8">
+      <section className="hero-shell px-6 py-8 sm:px-8 lg:px-10">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="eyebrow">Admin control room</p>
+            <h1 className="mt-5 font-display text-5xl leading-[0.9] text-foreground sm:text-6xl">
+              Run the platform from a calmer, clearer command surface.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+              Users, courses, activity, and analytics now sit inside a more polished admin experience with stronger hierarchy and cleaner data presentation.
+            </p>
+          </div>
+          <div className="spotlight-panel">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/65">Live overview</p>
+            <h2 className="mt-4 font-display text-4xl leading-[0.92] text-white">{totalUsers} users</h2>
+            <p className="mt-4 text-sm leading-7 text-white/75">
+              Track the shape of the platform with cleaner analytics panels, simplified tables, and more legible recent activity.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {/* Stats Grid */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="animate-fade-in-up stagger-1 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
-              <Users className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-bold tracking-tight">{totalUsers}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in-up stagger-2 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
-              <BookOpen className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Courses</p>
-              <p className="text-2xl font-bold tracking-tight">{courses.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in-up stagger-3 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
-              <TrendingUp className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Enrollments</p>
-              <p className="text-2xl font-bold tracking-tight">{stats?.total_enrollments.toLocaleString() || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in-up stagger-4 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 to-purple-100">
-              <Activity className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Completion Rate</p>
-              <p className="text-2xl font-bold tracking-tight">{stats?.completion_rate || 0}%</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="data-grid">
+        <MetricCard title="Total users" value={String(totalUsers)} />
+        <MetricCard title="Total courses" value={String(courses.length)} />
+        <MetricCard title="Enrollments" value={String(stats?.total_enrollments || 0)} />
+        <MetricCard title="Completion rate" value={`${stats?.completion_rate || 0}%`} />
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
@@ -171,52 +154,51 @@ export default function AdminDashboard() {
           <TabsTrigger value="activity">Recent Activity</TabsTrigger>
         </TabsList>
 
-        {/* === Users Tab === */}
         <TabsContent value="users">
-          <Card>
+          <Card className="bg-white/80">
             <CardHeader>
-              <CardTitle>All Users</CardTitle>
+              <CardTitle>All users</CardTitle>
               <CardDescription>
                 {studentCount} students, {instructorCount} instructors, {adminCount} admins
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="table-shell overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
                   <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-3 pr-4 font-medium">Name</th>
-                      <th className="pb-3 pr-4 font-medium">Email</th>
-                      <th className="pb-3 pr-4 font-medium">Role</th>
-                      <th className="pb-3 font-medium">Joined</th>
+                    <tr className="border-b border-border/70 text-left text-muted-foreground">
+                      <th className="px-5 py-4 font-medium">Name</th>
+                      <th className="px-5 py-4 font-medium">Email</th>
+                      <th className="px-5 py-4 font-medium">Role</th>
+                      <th className="px-5 py-4 font-medium">Joined</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
-                      <tr key={u._id} className="border-b last:border-0 transition-colors hover:bg-muted/50">
-                        <td className="py-3 pr-4 font-medium">{u.name}</td>
-                        <td className="py-3 pr-4 text-muted-foreground">{u.email}</td>
-                        <td className="py-3 pr-4">
-                          <Badge
-                            variant={u.role === "admin" ? "destructive" : u.role === "instructor" ? "default" : "secondary"}
-                          >
-                            {u.role === "admin" && <Shield className="mr-1 h-3 w-3" />}
-                            {u.role === "instructor" && <GraduationCap className="mr-1 h-3 w-3" />}
-                            {u.role === "student" && <UserCheck className="mr-1 h-3 w-3" />}
-                            {u.role}
+                    {users.map((user) => (
+                      <tr key={user._id} className="border-b border-border/60 last:border-0">
+                        <td className="px-5 py-4 font-medium text-foreground">{user.name}</td>
+                        <td className="px-5 py-4 text-muted-foreground">{user.email}</td>
+                        <td className="px-5 py-4">
+                          <Badge variant={user.role === "admin" ? "destructive" : user.role === "instructor" ? "default" : "secondary"}>
+                            {user.role === "admin" && <Shield className="h-3 w-3" />}
+                            {user.role === "student" && <UserCheck className="h-3 w-3" />}
+                            {user.role}
                           </Badge>
                         </td>
-                        <td className="py-3 text-muted-foreground">
-                          {new Date(u.createdAt).toLocaleDateString()}
+                        <td className="px-5 py-4 text-muted-foreground">
+                          {new Date(user.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
               {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Page {userPage} of {totalPages}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Page {userPage} of {totalPages}
+                  </p>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" disabled={userPage <= 1} onClick={() => loadUsers(userPage - 1)}>
                       Previous
@@ -231,44 +213,43 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        {/* === Courses Tab === */}
         <TabsContent value="courses">
-          <Card>
+          <Card className="bg-white/80">
             <CardHeader>
-              <CardTitle>All Courses</CardTitle>
-              <CardDescription>Manage all courses on the platform</CardDescription>
+              <CardTitle>All courses</CardTitle>
+              <CardDescription>A cleaner overview of every course on the platform.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="table-shell overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
                   <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-3 pr-4 font-medium">ID</th>
-                      <th className="pb-3 pr-4 font-medium">Title</th>
-                      <th className="pb-3 pr-4 font-medium">Category</th>
-                      <th className="pb-3 pr-4 font-medium">Price</th>
-                      <th className="pb-3 font-medium">Created</th>
+                    <tr className="border-b border-border/70 text-left text-muted-foreground">
+                      <th className="px-5 py-4 font-medium">ID</th>
+                      <th className="px-5 py-4 font-medium">Title</th>
+                      <th className="px-5 py-4 font-medium">Category</th>
+                      <th className="px-5 py-4 font-medium">Price</th>
+                      <th className="px-5 py-4 font-medium">Created</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {courses.map((c) => (
-                      <tr key={c.id} className="border-b last:border-0 transition-colors hover:bg-muted/50">
-                        <td className="py-3 pr-4 text-muted-foreground">#{c.id}</td>
-                        <td className="py-3 pr-4">
-                          <a href={`/courses/${c.id}`} className="font-medium text-primary hover:underline">
-                            {c.title}
+                    {courses.map((course) => (
+                      <tr key={course.id} className="border-b border-border/60 last:border-0">
+                        <td className="px-5 py-4 text-muted-foreground">#{course.id}</td>
+                        <td className="px-5 py-4">
+                          <a href={`/courses/${course.id}`} className="font-medium text-foreground hover:text-primary">
+                            {course.title}
                           </a>
                         </td>
-                        <td className="py-3 pr-4">
-                          {c.category ? <Badge variant="outline">{c.category}</Badge> : <span className="text-muted-foreground">—</span>}
+                        <td className="px-5 py-4">
+                          {course.category ? <Badge variant="outline">{course.category}</Badge> : <span className="text-muted-foreground">-</span>}
                         </td>
-                        <td className="py-3 pr-4">
-                          <Badge variant={c.is_free ? "secondary" : "default"}>
-                            {c.is_free ? "Free" : `$${c.price}`}
+                        <td className="px-5 py-4">
+                          <Badge variant={course.is_free ? "secondary" : "warning"}>
+                            {course.is_free ? "Free" : `$${course.price}`}
                           </Badge>
                         </td>
-                        <td className="py-3 text-muted-foreground">
-                          {new Date(c.created_at).toLocaleDateString()}
+                        <td className="px-5 py-4 text-muted-foreground">
+                          {new Date(course.created_at).toLocaleDateString()}
                         </td>
                       </tr>
                     ))}
@@ -279,112 +260,101 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        {/* === Analytics Tab === */}
         <TabsContent value="analytics">
           {stats && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <Card className="text-center">
-                  <CardContent className="py-4">
-                    <div className="text-2xl font-bold text-primary">{stats.total_views.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">Total Page Views</div>
-                  </CardContent>
-                </Card>
-                <Card className="text-center">
-                  <CardContent className="py-4">
-                    <div className="text-2xl font-bold text-emerald-600">{stats.total_enrollments.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">Total Enrollments</div>
-                  </CardContent>
-                </Card>
-                <Card className="text-center">
-                  <CardContent className="py-4">
-                    <div className="text-2xl font-bold text-amber-600">{stats.active_users.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">Active Users</div>
-                  </CardContent>
-                </Card>
-                <Card className="text-center">
-                  <CardContent className="py-4">
-                    <div className="text-2xl font-bold text-purple-600">{stats.completion_rate}%</div>
-                    <div className="text-xs text-muted-foreground">Completion Rate</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Popular Courses */}
-              <Card>
-                <CardHeader><CardTitle className="text-lg">Popular Courses</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {stats.popular_courses.map((c, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i + 1}</span>
-                        <div className="flex-1">
-                          <div className="mb-1 flex items-center justify-between">
-                            <span className="text-sm font-medium">{c.label}</span>
-                            <span className="text-xs text-muted-foreground">{c.value} enrollments</span>
-                          </div>
-                          <Progress value={(c.value / (stats.popular_courses[0]?.value || 1)) * 100} className="h-1.5" />
+            <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <Card className="bg-white/80">
+                <CardHeader>
+                  <CardTitle>Popular courses</CardTitle>
+                  <CardDescription>What is drawing the most enrollments right now.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {stats.popular_courses.map((course, index) => (
+                    <div key={`${course.label}-${index}`} className="rounded-[1.35rem] bg-background/80 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                          <span className="font-medium text-foreground">{course.label}</span>
                         </div>
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          {course.value} enrollments
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                      <Progress value={(course.value / (stats.popular_courses[0]?.value || 1)) * 100} className="h-2" />
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
-              {/* Enrollment Trends */}
-              <Card>
-                <CardHeader><CardTitle className="text-lg">Enrollment Trends</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stats.enrollment_trends.map((t, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <span className="w-16 text-sm text-muted-foreground">{t.label}</span>
-                        <div className="flex-1">
-                          <Progress value={(t.value / Math.max(...stats.enrollment_trends.map((x) => x.value), 1)) * 100} className="h-2" />
-                        </div>
-                        <span className="w-12 text-right text-sm font-medium">{t.value}</span>
+              <Card className="bg-white/80">
+                <CardHeader>
+                  <CardTitle>Enrollment trends</CardTitle>
+                  <CardDescription>Recent momentum across the platform.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {stats.enrollment_trends.map((trend, index) => (
+                    <div key={`${trend.label}-${index}`} className="rounded-[1.35rem] bg-background/80 p-4">
+                      <div className="mb-3 flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">{trend.label}</span>
+                        <span className="text-muted-foreground">{trend.value}</span>
                       </div>
-                    ))}
-                  </div>
+                      <Progress
+                        value={(trend.value / Math.max(...stats.enrollment_trends.map((item) => item.value), 1)) * 100}
+                        className="h-2.5"
+                      />
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
           )}
         </TabsContent>
 
-        {/* === Activity Tab === */}
         <TabsContent value="activity">
-          <Card>
+          <Card className="bg-white/80">
             <CardHeader>
-              <CardTitle>Recent Events</CardTitle>
-              <CardDescription>Latest platform activity</CardDescription>
+              <CardTitle>Recent events</CardTitle>
+              <CardDescription>Latest platform activity in a cleaner event feed.</CardDescription>
             </CardHeader>
             <CardContent>
               {events.length === 0 ? (
                 <p className="py-8 text-center text-muted-foreground">No activity recorded yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {events.slice(0, 30).map((ev, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                        ev.event_type === "enrollment" ? "bg-emerald-50 text-emerald-600" :
-                        ev.event_type === "page_view" ? "bg-blue-50 text-blue-600" :
-                        ev.event_type === "lesson_complete" ? "bg-amber-50 text-amber-600" :
-                        "bg-purple-50 text-purple-600"
-                      }`}>
-                        {ev.event_type === "enrollment" ? <UserCheck className="h-4 w-4" /> :
-                         ev.event_type === "page_view" ? <Eye className="h-4 w-4" /> :
-                         <Activity className="h-4 w-4" />}
+                  {events.slice(0, 30).map((event) => (
+                    <div key={event.id} className="flex items-center gap-3 rounded-[1.3rem] border border-white/80 bg-white/75 p-4">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                          event.event_type === "enrollment"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : event.event_type === "page_view"
+                            ? "bg-blue-50 text-blue-600"
+                            : "bg-secondary text-primary"
+                        }`}
+                      >
+                        {event.event_type === "enrollment" ? (
+                          <UserCheck className="h-4 w-4" />
+                        ) : event.event_type === "page_view" ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <Activity className="h-4 w-4" />
+                        )}
                       </div>
+
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{ev.event_type.replace(/_/g, " ")}</p>
+                        <p className="text-sm font-medium capitalize text-foreground">
+                          {event.event_type.replace(/_/g, " ")}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {ev.user_id && `User: ${ev.user_id.slice(0, 8)}...`}
-                          {ev.course_id && ` • Course #${ev.course_id}`}
+                          {event.user_id && `User: ${event.user_id.slice(0, 8)}...`}
+                          {event.course_id && ` • Course #${event.course_id}`}
                         </p>
                       </div>
+
                       <span className="text-xs text-muted-foreground">
-                        {new Date(ev.created_at).toLocaleString()}
+                        {new Date(event.created_at).toLocaleString()}
                       </span>
                     </div>
                   ))}
@@ -395,5 +365,16 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function MetricCard({ title, value }: { title: string; value: string }) {
+  return (
+    <Card className="bg-white/80">
+      <CardContent className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">{title}</p>
+        <p className="mt-3 text-3xl font-semibold text-foreground">{value}</p>
+      </CardContent>
+    </Card>
   );
 }

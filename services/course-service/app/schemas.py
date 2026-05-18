@@ -139,6 +139,30 @@ class EnrollmentResponse(BaseModel):
         from_attributes = True
 
 
+class CheckoutSessionCreate(BaseModel):
+    """Request body for starting a Stripe Checkout session."""
+
+    user_id: str
+    user_email: Optional[str] = None
+    frontend_origin: Optional[str] = None
+
+
+class CheckoutSessionResponse(BaseModel):
+    """Response payload for a newly-created Stripe Checkout session."""
+
+    session_id: str
+    url: str
+
+
+class CheckoutSessionStatusResponse(BaseModel):
+    """Response payload for a Stripe Checkout session status lookup."""
+
+    session_id: str
+    status: str
+    payment_status: str
+    enrolled: bool
+
+
 # ---------------------------------------------------------------------------
 # Progress schemas
 # ---------------------------------------------------------------------------

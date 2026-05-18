@@ -36,6 +36,11 @@ def enroll_in_course(course_id: int, enrollment: EnrollmentCreate, db: Session =
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+    if not course.is_free:
+        raise HTTPException(
+            status_code=402,
+            detail="Paid courses must be purchased through Stripe Checkout",
+        )
 
     existing = db.query(Enrollment).filter(
         Enrollment.user_id == enrollment.user_id,

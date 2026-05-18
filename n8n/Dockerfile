@@ -14,6 +14,8 @@ FROM n8nio/n8n:latest
 
 USER root
 
+RUN apk add --no-cache netcat-openbsd
+
 # Copy the startup script
 COPY init.sh /init.sh
 RUN chmod +x /init.sh

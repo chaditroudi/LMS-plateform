@@ -1,16 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Plus, Pencil, Trash2, BookOpen, Layers, Eye, ArrowRight,
-} from "lucide-react";
-import {
-  fetchCourses, createCourse, updateCourse, deleteCourse,
-} from "@/lib/api";
+import React, { useEffect, useState } from "react";
+import { Eye, ImagePlus, Layers, Pencil, Plus, Trash2 } from "lucide-react";
+import { createCourse, deleteCourse, fetchCourses, updateCourse, uploadCourseMedia } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface CourseItem {
@@ -40,8 +36,8 @@ export default function InstructorDashboard() {
   const [editingCourse, setEditingCourse] = useState<CourseItem | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
 
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -55,27 +51,28 @@ export default function InstructorDashboard() {
       window.location.href = "/auth/login";
       return;
     }
-    const u = JSON.parse(stored);
-    if (u.role !== "instructor" && u.role !== "admin") {
+
+    const parsed = JSON.parse(stored);
+    if (parsed.role !== "instructor" && parsed.role !== "admin") {
       window.location.href = "/dashboard";
       return;
     }
-    setUser(u);
+
+    setUser(parsed);
     loadCourses();
   }, []);
 
   async function loadCourses() {
     try {
-      const all = await fetchCourses();
+      const allCourses = await fetchCourses();
       const stored = localStorage.getItem("user");
       if (stored) {
-        const u = JSON.parse(stored);
-        // Admin sees all, instructor sees own courses
-        if (u.role === "admin") {
-          setCourses(all);
-        } else {
-          setCourses(all.filter((c: CourseItem) => c.instructor_id === u._id));
-        }
+        const parsed = JSON.parse(stored);
+        setCourses(
+          parsed.role === "admin"
+            ? allCourses
+            : allCourses.filter((course: CourseItem) => course.instructor_id === parsed._id)
+        );
       }
     } catch {
       setError("Failed to load courses");
@@ -107,14 +104,34 @@ export default function InstructorDashboard() {
     setShowForm(true);
   }
 
+  async function handleThumbnailUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setThumbnailUploading(true);
+    setError("");
+
+    try {
+      const uploaded = await uploadCourseMedia(file, { kind: "course_thumbnail" });
+      setThumbnailUrl(uploaded.url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Thumbnail upload failed");
+    } finally {
+      setThumbnailUploading(false);
+      e.target.value = "";
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
       setError("Title is required");
       return;
     }
+
     setSaving(true);
     setError("");
+
     try {
       if (editingCourse) {
         await updateCourse(editingCourse.id, {
@@ -125,7 +142,7 @@ export default function InstructorDashboard() {
           is_free: isFree,
           thumbnail_url: thumbnailUrl || undefined,
         });
-      } else {
+      } else if (user) {
         await createCourse({
           title,
           description: description || undefined,
@@ -133,9 +150,10 @@ export default function InstructorDashboard() {
           price: parseFloat(price) || 0,
           is_free: isFree,
           thumbnail_url: thumbnailUrl || undefined,
-          instructor_id: user!._id,
+          instructor_id: user._id,
         });
       }
+
       resetForm();
       await loadCourses();
     } catch (err: unknown) {
@@ -146,10 +164,13 @@ export default function InstructorDashboard() {
   }
 
   async function handleDelete(courseId: number) {
-    if (!confirm("Delete this course? All lessons, enrollments, and reviews will be removed.")) return;
+    if (!confirm("Delete this course? All lessons, enrollments, and reviews will be removed.")) {
+      return;
+    }
+
     try {
       await deleteCourse(courseId);
-      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      setCourses((prev) => prev.filter((course) => course.id !== courseId));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
@@ -157,119 +178,148 @@ export default function InstructorDashboard() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground">
+      <div className="app-shell py-16 text-center text-muted-foreground">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="mt-4">Loading instructor dashboard...</p>
+        <p className="mt-4">Loading course studio...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Course Management</h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            {user?.role === "admin" ? "Manage all platform courses" : "Create and manage your courses"}
-          </p>
+    <div className="app-shell space-y-8">
+      <section className="hero-shell px-6 py-8 sm:px-8 lg:px-10">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="eyebrow">Course studio</p>
+            <h1 className="mt-5 font-display text-5xl leading-[0.9] text-foreground sm:text-6xl">
+              Manage your catalog in a cleaner creator workspace.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+              {user?.role === "admin"
+                ? "You are viewing every course on the platform with the refreshed management interface."
+                : "Create courses, refine details, and move into lesson management from a more productized control surface."}
+            </p>
+          </div>
+          <div className="spotlight-panel">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/65">Catalog overview</p>
+            <h2 className="mt-4 font-display text-4xl leading-[0.92] text-white">{courses.length} course{courses.length !== 1 ? "s" : ""}</h2>
+            <p className="mt-4 text-sm leading-7 text-white/75">
+              The refreshed studio prioritizes quick edits, stronger readability, and easier transitions into lesson management.
+            </p>
+            <Button onClick={() => { resetForm(); setShowForm(true); }} className="mt-6 bg-white text-foreground hover:bg-white/92">
+              <Plus className="mr-2 h-4 w-4" />
+              New course
+            </Button>
+          </div>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-          className="shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Course
-        </Button>
-      </div>
+      </section>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive animate-scale-in">
+        <div className="rounded-[1.3rem] border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      {/* Create / Edit Form */}
       {showForm && (
-        <Card className="mb-8 animate-scale-in shadow-lg shadow-black/5 border-0 ring-1 ring-border">
+        <Card className="bg-white/80">
           <CardHeader>
-            <CardTitle>{editingCourse ? "Edit Course" : "Create New Course"}</CardTitle>
+            <CardTitle>{editingCourse ? "Edit course" : "Create course"}</CardTitle>
             <CardDescription>
-              {editingCourse ? "Update your course details below." : "Fill in the details to create a new course."}
+              {editingCourse
+                ? "Update the course details below."
+                : "Fill out the course basics to publish a new learning path."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Introduction to Python"
-                    required
-                  />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Introduction to Python" required />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder="e.g. Programming, Data Science"
-                  />
+                  <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Programming, Data Science..." />
                 </div>
               </div>
-              <div>
+
+              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Course description..."
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="ui-textarea"
                 />
               </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
                   <Label htmlFor="price">Price</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                  />
+                  <Input id="price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
                 </div>
-                <div className="flex items-end gap-2">
-                  <label className="flex items-center gap-2">
+
+                <div className="flex items-end">
+                  <label className="flex h-12 w-full items-center gap-3 rounded-[1.25rem] border border-white/80 bg-white/80 px-4 text-sm font-medium text-foreground">
                     <input
                       type="checkbox"
                       checked={isFree}
                       onChange={(e) => setIsFree(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300"
                     />
-                    <span className="text-sm font-medium">Free course</span>
+                    Free course
                   </label>
                 </div>
-                <div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+                <div className="space-y-2">
                   <Label htmlFor="thumbnail">Thumbnail URL</Label>
                   <Input
                     id="thumbnail"
                     value={thumbnailUrl}
                     onChange={(e) => setThumbnailUrl(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://... or upload below"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Paste an external image URL, or upload directly to MinIO.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="thumbnailFile">Upload thumbnail</Label>
+                  <label className="flex min-h-[3.25rem] cursor-pointer items-center gap-3 rounded-[1.25rem] border border-dashed border-border bg-background/60 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
+                    <ImagePlus className="h-4 w-4 text-primary" />
+                    <span>{thumbnailUploading ? "Uploading image..." : "Choose an image file"}</span>
+                    <input
+                      id="thumbnailFile"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleThumbnailUpload}
+                      disabled={thumbnailUploading}
+                    />
+                  </label>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : editingCourse ? "Update Course" : "Create Course"}
+
+              {thumbnailUrl && (
+                <div className="overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/70 p-3">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Thumbnail preview
+                  </p>
+                  <img
+                    src={thumbnailUrl}
+                    alt="Course thumbnail preview"
+                    className="h-48 w-full rounded-[1.1rem] object-cover"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                <Button type="submit" disabled={saving || thumbnailUploading}>
+                  {saving ? "Saving..." : editingCourse ? "Update course" : "Create course"}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
@@ -280,72 +330,72 @@ export default function InstructorDashboard() {
         </Card>
       )}
 
-      {/* Course List */}
       {courses.length === 0 ? (
-        <Card className="text-center">
+        <Card className="bg-white/80 text-center">
           <CardContent className="py-12">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-            <h3 className="text-lg font-semibold">No courses yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Click &quot;New Course&quot; to create your first course.
+            <h3 className="text-2xl font-semibold text-foreground">No courses yet</h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Click “New course” to start building your first productized learning path.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {courses.map((course) => (
-            <Card key={course.id} className="transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-0 ring-1 ring-border hover:ring-primary/20">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold">{course.title}</h3>
-                      <Badge variant={course.is_free ? "secondary" : "default"}>
-                        {course.is_free ? "Free" : `$${course.price}`}
-                      </Badge>
-                      {course.category && (
-                        <Badge variant="outline">{course.category}</Badge>
-                      )}
+            <Card key={course.id} className="bg-white/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_34px_80px_-52px_rgba(15,48,80,0.42)]">
+              <CardContent className="grid gap-5 p-6 lg:grid-cols-[150px_1fr_auto] lg:items-start">
+                <div className="overflow-hidden rounded-[1.25rem] bg-[linear-gradient(135deg,hsl(var(--secondary)),hsl(var(--card)))]">
+                  {course.thumbnail_url ? (
+                    <img
+                      src={course.thumbnail_url}
+                      alt={`${course.title} thumbnail`}
+                      className="h-28 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-28 items-center justify-center text-sm font-semibold text-primary">
+                      No image
                     </div>
-                    {course.description && (
-                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                        {course.description}
-                      </p>
-                    )}
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Created {new Date(course.created_at).toLocaleDateString()}
-                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-2xl font-semibold text-foreground">{course.title}</h3>
+                    <Badge variant={course.is_free ? "success" : "warning"}>
+                      {course.is_free ? "Free" : `$${course.price}`}
+                    </Badge>
+                    {course.category && <Badge variant="outline">{course.category}</Badge>}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/courses/${course.id}`}>
-                        <Eye className="mr-1 h-4 w-4" />
-                        View
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/dashboard/instructor/${course.id}/lessons`}>
-                        <Layers className="mr-1 h-4 w-4" />
-                        Lessons
-                      </a>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditForm(course)}
-                    >
-                      <Pencil className="mr-1 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(course.id)}
-                    >
-                      <Trash2 className="mr-1 h-4 w-4" />
-                      Delete
-                    </Button>
+                  {course.description && (
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">{course.description}</p>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <span>Created {new Date(course.created_at).toLocaleDateString()}</span>
+                    <span>Updated {new Date(course.updated_at).toLocaleDateString()}</span>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/courses/${course.id}`}>
+                      <Eye className="mr-1 h-4 w-4" />
+                      View
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/dashboard/instructor/${course.id}/lessons`}>
+                      <Layers className="mr-1 h-4 w-4" />
+                      Lessons
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openEditForm(course)}>
+                    <Pencil className="mr-1 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(course.id)}>
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>

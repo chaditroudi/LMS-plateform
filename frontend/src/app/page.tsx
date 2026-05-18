@@ -1,163 +1,220 @@
-/**
- * Home Page — /
- *
- * Static marketing landing page rendered as a React Server Component.
- * Contains three sections:
- *   1. Hero     — Headline, sub-headline, and primary CTAs.
- *   2. Features — Four feature cards highlighting platform capabilities.
- *   3. CTA      — Secondary call-to-action encouraging free registration.
- *
- * The FeatureCard sub-component is defined in this file to keep the
- * component tree simple — it is not reused anywhere else.
- */
-
-import React from "react";
-import { BookOpen, Users, Brain, Shield, ArrowRight, Sparkles, Play } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  ChartSpline,
+  Compass,
+  GraduationCap,
+  LayoutDashboard,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+const experiencePillars = [
+  {
+    title: "Premium learner journey",
+    description: "A cleaner browse-to-enroll flow with stronger hierarchy and richer course storytelling.",
+    icon: Compass,
+  },
+  {
+    title: "AI kept in context",
+    description: "The tutor, quiz generation, and recommendations feel embedded in the product instead of bolted on.",
+    icon: Brain,
+  },
+  {
+    title: "Ops-ready dashboards",
+    description: "Student, instructor, and admin views now feel like one designed platform with shared UX patterns.",
+    icon: LayoutDashboard,
+  },
+];
+
+const roleShowcase = [
+  {
+    title: "For learners",
+    description: "Sharper catalog browsing, stronger lesson pacing, and progress views that feel motivating instead of mechanical.",
+    icon: BookOpen,
+  },
+  {
+    title: "For instructors",
+    description: "Course creation and lesson management now read like a polished studio with clearer editing surfaces.",
+    icon: GraduationCap,
+  },
+  {
+    title: "For admins",
+    description: "Analytics, platform oversight, and activity monitoring fit inside a calmer command center.",
+    icon: ShieldCheck,
+  },
+];
+
 export default function Home() {
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-b from-primary/5 via-background to-background">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.15),transparent)]" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM2MzY2ZjEiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50" />
-        <div className="relative mx-auto max-w-7xl px-4 py-28 sm:px-6 sm:py-36 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <Badge variant="secondary" className="mb-6 gap-1.5 px-4 py-2 text-sm animate-fade-in shadow-sm">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              AI-Powered Learning Platform
-            </Badge>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl animate-fade-in-up">
-              Learn Without{" "}
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Limits
-              </span>
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-muted-foreground sm:text-xl animate-fade-in-up stagger-2">
-              Discover free and premium courses. Learn at your own pace with AI-powered tutoring, real-time progress tracking, and personalized recommendations.
-            </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-in-up stagger-3">
-              <Button size="lg" className="gap-2 text-base shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5" asChild>
-                <a href="/courses">
-                  Browse Courses
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button variant="outline" size="lg" className="gap-2 text-base transition-all hover:-translate-y-0.5" asChild>
-                <a href="/auth/register">
-                  <Play className="h-4 w-4" />
-                  Get Started Free
-                </a>
-              </Button>
+    <div className="space-y-10">
+      <section className="app-shell">
+        <div className="hero-shell soft-grid px-6 py-10 sm:px-8 lg:px-12 lg:py-14">
+          <div className="absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.16),transparent_68%)]" />
+          <div className="absolute right-[-4rem] top-[-4rem] h-52 w-52 rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.22),transparent_72%)] blur-3xl" />
+          <div className="absolute bottom-[-5rem] left-[-2rem] h-52 w-52 rounded-full bg-[radial-gradient(circle,hsl(var(--secondary-foreground)/0.12),transparent_72%)] blur-3xl" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+            <div className="max-w-3xl">
+              <Badge variant="secondary" className="animate-fade-in">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+                Resale-ready redesign
+              </Badge>
+              <h1 className="mt-6 font-display text-5xl leading-[0.9] text-foreground sm:text-6xl lg:text-7xl animate-fade-in-up">
+                A learning platform that finally looks like a product people want to buy.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground animate-fade-in-up stagger-2 sm:text-lg">
+                Lunexa Academy now presents courses, AI support, dashboards, and management flows through a warmer, more luxurious product identity built to feel distinct, premium, and commercially credible.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row animate-fade-in-up stagger-3">
+                <Button size="lg" asChild>
+                  <a href="/courses">
+                    Explore the catalog
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <a href="/dashboard">Open the dashboard</a>
+                </Button>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <span className="stat-chip">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  10K+ learners supported
+                </span>
+                <span className="stat-chip">
+                  <ChartSpline className="h-3.5 w-3.5 text-primary" />
+                  Analytics and admin views included
+                </span>
+                <span className="stat-chip">
+                  <Brain className="h-3.5 w-3.5 text-accent" />
+                  AI tutor and lesson quiz flow
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:pl-6">
+              <div className="spotlight-panel animate-fade-in-up stagger-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/65">What changed</p>
+                <h2 className="mt-4 font-display text-4xl leading-[0.92] text-white">
+                  New brand energy without changing the platform foundation.
+                </h2>
+                <p className="mt-4 max-w-md text-sm leading-7 text-white/74">
+                  This version leans into boutique typography, richer earth-toned color, a custom logo mark, and more buyer-friendly product framing across every major screen.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Card className="bg-white/75 animate-fade-in-up stagger-3">
+                  <CardContent className="p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Navigation</p>
+                    <p className="mt-3 text-2xl font-semibold text-foreground">More confident</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Clearer routes between catalog, lessons, dashboards, and profile settings.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-white/75 animate-fade-in-up stagger-4">
+                  <CardContent className="p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Presentation</p>
+                    <p className="mt-3 text-2xl font-semibold text-foreground">More premium</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Better contrast, cleaner forms, and polished data panels across roles.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <Badge variant="outline" className="mb-4">Features</Badge>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything you need to succeed
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Built with modern microservices architecture for a seamless learning experience.
-          </p>
-        </div>
-        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <FeatureCard
-            icon={<BookOpen className="h-6 w-6" />}
-            title="Rich Course Catalog"
-            description="Browse hundreds of courses across programming, data science, DevOps, and more."
-            delay="stagger-1"
-          />
-          <FeatureCard
-            icon={<Brain className="h-6 w-6" />}
-            title="AI-Powered Tutor"
-            description="Get instant contextual answers with our AI tutor integrated into every course."
-            delay="stagger-2"
-          />
-          <FeatureCard
-            icon={<Users className="h-6 w-6" />}
-            title="Progress Tracking"
-            description="Track your journey with detailed analytics, completion rates, and insights."
-            delay="stagger-3"
-          />
-          <FeatureCard
-            icon={<Shield className="h-6 w-6" />}
-            title="Secure & Reliable"
-            description="Built with microservices for high availability, security, and performance."
-            delay="stagger-4"
-          />
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="border-y bg-gradient-to-r from-muted/40 via-muted/60 to-muted/40">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-4 py-16 sm:px-6 lg:grid-cols-4 lg:px-8">
-          {[
-            { value: "500+", label: "Courses", color: "text-primary" },
-            { value: "10K+", label: "Students", color: "text-emerald-600" },
-            { value: "50+", label: "Instructors", color: "text-amber-600" },
-            { value: "95%", label: "Satisfaction", color: "text-purple-600" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className={`text-3xl font-bold ${stat.color} sm:text-4xl`}>{stat.value}</div>
-              <div className="mt-1 text-sm font-medium text-muted-foreground">{stat.label}</div>
-            </div>
+      <section className="app-shell">
+        <div className="data-grid">
+          {experiencePillars.map((pillar, index) => (
+            <Card
+              key={pillar.title}
+              className={`group overflow-hidden bg-white/80 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_34px_80px_-52px_rgba(15,48,80,0.42)] animate-fade-in-up ${["stagger-1", "stagger-2", "stagger-3"][index]}`}
+            >
+              <CardContent className="p-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,hsl(var(--secondary)),hsl(var(--card)))] text-primary shadow-[0_18px_40px_-28px_rgba(15,48,80,0.3)]">
+                  <pillar.icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-5 text-2xl font-semibold text-foreground">{pillar.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">{pillar.description}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-purple-600 to-pink-600 text-primary-foreground shadow-2xl shadow-primary/20">
-          <CardContent className="flex flex-col items-center p-12 text-center sm:p-16">
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-              <Sparkles className="h-8 w-8" />
-            </div>
-            <h2 className="text-3xl font-bold sm:text-4xl">Ready to Start Learning?</h2>
-            <p className="mt-4 max-w-xl text-lg text-primary-foreground/80">
-              Join thousands of learners and transform your career today. It&apos;s free to get started.
+      <section className="app-shell">
+        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="section-panel p-8 sm:p-10">
+            <p className="eyebrow">Why it sells better</p>
+            <h2 className="mt-5 max-w-lg font-display text-4xl leading-[0.92] text-foreground sm:text-5xl">
+              The platform now looks cohesive at the product level, not just the page level.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+              Buyer confidence often comes from the details: how polished the dashboard feels, whether forms look trustworthy, and whether every role has a UI that feels intentionally designed. This refresh pushes the whole app in that direction.
             </p>
-            <Button size="lg" variant="secondary" className="mt-8 gap-2 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl" asChild>
-              <a href="/auth/register">
-                Create Free Account
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
+
+            <div className="mt-8 data-grid">
+              {[
+                { label: "Visual system", value: "Unified" },
+                { label: "Role coverage", value: "3 views" },
+                { label: "AI surfaces", value: "Integrated" },
+                { label: "Perception", value: "Premium" },
+              ].map((stat) => (
+                <div key={stat.label} className="metric-tile">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">{stat.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-foreground">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {roleShowcase.map((item, index) => (
+              <Card
+                key={item.title}
+                className={`bg-white/80 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_34px_80px_-52px_rgba(15,48,80,0.42)] animate-fade-in-up ${["stagger-1", "stagger-2", "stagger-3"][index] || "stagger-3"}`}
+              >
+                <CardContent className="p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,hsl(var(--foreground)),hsl(var(--primary)))] text-primary-foreground">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 text-2xl font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+            <Card className="bg-[linear-gradient(145deg,hsl(var(--secondary)),hsl(var(--card)))] sm:col-span-2">
+              <CardContent className="flex h-full flex-col justify-between gap-5 p-6 sm:flex-row sm:items-end">
+                <div>
+                  <p className="eyebrow">Built for demos</p>
+                  <h3 className="mt-5 font-display text-3xl leading-[0.94] text-foreground sm:text-4xl">
+                    Home, catalog, lessons, profile, instructor tools, and admin control all look like they belong together.
+                  </h3>
+                </div>
+                <Button asChild>
+                  <a href="/auth/register">
+                    Create demo account
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </section>
     </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  description,
-  delay,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  delay?: string;
-}) {
-  return (
-    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up ${delay || ""}`}>
-      <CardContent className="p-6">
-        <div className="mb-4 inline-flex rounded-xl bg-gradient-to-br from-primary/10 to-purple-100 p-3 text-primary transition-all duration-300 group-hover:from-primary group-hover:to-purple-600 group-hover:text-primary-foreground group-hover:shadow-md group-hover:shadow-primary/25">
-          {icon}
-        </div>
-        <h3 className="mb-2 font-semibold">{title}</h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
-      </CardContent>
-      <div className="absolute inset-x-0 bottom-0 h-0.5 scale-x-0 bg-gradient-to-r from-primary to-purple-600 transition-transform duration-300 group-hover:scale-x-100" />
-    </Card>
   );
 }

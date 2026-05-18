@@ -76,6 +76,22 @@ CREATE TABLE IF NOT EXISTS reviews (
     UNIQUE(user_id, course_id)
 );
 
+-- Payments table
+CREATE TABLE IF NOT EXISTS payments (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+    stripe_checkout_session_id VARCHAR(255) NOT NULL UNIQUE,
+    stripe_payment_intent_id VARCHAR(255),
+    customer_email VARCHAR(255),
+    amount DECIMAL(10, 2) DEFAULT 0.00,
+    currency VARCHAR(16) DEFAULT 'usd',
+    status VARCHAR(64) DEFAULT 'pending',
+    fulfilled_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Analytics table
 CREATE TABLE IF NOT EXISTS analytics (
     id SERIAL PRIMARY KEY,
@@ -94,6 +110,9 @@ CREATE INDEX IF NOT EXISTS idx_lessons_course ON lessons(course_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_course ON enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_progress_user ON progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_course ON payments(course_id);
+CREATE INDEX IF NOT EXISTS idx_payments_session ON payments(stripe_checkout_session_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics(user_id);
 

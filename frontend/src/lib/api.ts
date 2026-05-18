@@ -17,9 +17,18 @@
  *   localStorage is unavailable.
  */
 
-// Use relative URLs from browser (nginx proxy), internal URL from server
+// Use relative URLs from the gateway in-browser, internal URL from the server.
+// When the frontend is opened directly on :3000, relative /api requests would
+// hit Next.js itself and return its HTML 404 page. In that case, fall back to
+// the same host on the default gateway port instead.
 function getBaseUrl() {
-  if (typeof window !== "undefined") return "";
+  if (typeof window !== "undefined") {
+    const { hostname, port, protocol } = window.location;
+    if (port === "3000") {
+      return `${protocol}//${hostname}`;
+    }
+    return "";
+  }
   return process.env.NEXT_PUBLIC_API_URL || "http://nginx-gateway";
 }
 
@@ -296,6 +305,44 @@ export async function getRecommendations(
   return res.json();
 }
 
+/** Create a Stripe Checkout session for a paid course purchase. */
+export async function createStripeCheckoutSession(
+  courseId: number,
+  data: {
+    user_id: string;
+    user_email?: string;
+    frontend_origin?: string;
+  }
+) {
+  const res = await fetch(`${getBaseUrl()}/api/courses/${courseId}/checkout/stripe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const response = await res.json().catch(() => ({}));
+    throw new Error(response.detail || "Unable to start Stripe checkout");
+  }
+  return res.json();
+}
+
+/** Confirm a Stripe Checkout session after redirect back from Stripe. */
+export async function fetchStripeCheckoutSessionStatus(
+  courseId: number,
+  sessionId: string,
+  userId: string
+) {
+  const res = await fetch(
+    `${getBaseUrl()}/api/courses/${courseId}/checkout/stripe/session/${encodeURIComponent(sessionId)}?user_id=${encodeURIComponent(userId)}`,
+    { headers: { ...authHeaders() }, cache: "no-store" }
+  );
+  if (!res.ok) {
+    const response = await res.json().catch(() => ({}));
+    throw new Error(response.detail || "Unable to verify Stripe checkout");
+  }
+  return res.json();
+}
+
 // ---------------------------------------------------------------------------
 // Analytics Service
 // ---------------------------------------------------------------------------
@@ -386,6 +433,37 @@ export async function deleteCourse(courseId: number) {
     const d = await res.json().catch(() => ({}));
     throw new Error(d.detail || "Failed to delete course");
   }
+}
+
+/** Upload a course thumbnail or lesson video to MinIO via the course service. */
+export async function uploadCourseMedia(
+  file: File,
+  data: {
+    kind: "course_thumbnail" | "lesson_video";
+    course_id?: number;
+    lesson_id?: number;
+  }
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("kind", data.kind);
+  if (data.course_id !== undefined) {
+    formData.append("course_id", String(data.course_id));
+  }
+  if (data.lesson_id !== undefined) {
+    formData.append("lesson_id", String(data.lesson_id));
+  }
+
+  const res = await fetch(`${getBaseUrl()}/api/courses/media/upload`, {
+    method: "POST",
+    headers: { ...authHeaders() },
+    body: formData,
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.detail || "Failed to upload media");
+  }
+  return res.json();
 }
 
 /** Create a new lesson within a course. */

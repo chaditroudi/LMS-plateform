@@ -1,28 +1,14 @@
-/**
- * Register Page — /auth/register
- *
- * Client component that presents a new-account registration form.
- * Fields: full name, email, password (min 6 chars), role (student / instructor).
- *
- * On successful registration:
- *   1. Stores the JWT in localStorage under the key "token".
- *   2. Stores the user object under the key "user".
- *   3. Redirects to /dashboard.
- *
- * Note: The backend always stores new self-registered users as "student"
- * regardless of the role submitted, to prevent privilege escalation.
- * The role selector is kept in the UI for future admin-created accounts.
- */
-
 "use client";
 
 import React, { useState } from "react";
-import { UserPlus, Mail, Lock, User, GraduationCap } from "lucide-react";
+import { ArrowRight, Compass, GraduationCap, Lock, Mail, Sparkles, User, UserPlus } from "lucide-react";
 import { register } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import BrandLogo from "@/app/components/BrandLogo";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -36,12 +22,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       const data = await register(name, email, password, role);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       const userRole = data.user.role;
-      window.location.href = (userRole === "instructor" || userRole === "admin") ? "/dashboard/instructor" : "/dashboard";
+      window.location.href =
+        userRole === "instructor" || userRole === "admin"
+          ? "/dashboard/instructor"
+          : "/dashboard";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -50,120 +40,162 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[85vh] items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md animate-fade-in-up">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 shadow-lg shadow-primary/25">
-            <UserPlus className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Start your learning journey today</p>
-        </div>
-        <Card className="shadow-xl shadow-black/5 border-0 ring-1 ring-border">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Sign Up</CardTitle>
-            <CardDescription>Fill in your details to create a new account</CardDescription>
+    <div className="app-shell flex min-h-[82vh] items-center py-4">
+      <div className="grid w-full gap-6 lg:grid-cols-[0.98fr_1.02fr]">
+        <Card className="bg-white/80">
+          <CardHeader className="pb-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,hsl(var(--foreground)),hsl(var(--primary)))] text-primary-foreground shadow-[0_22px_42px_-24px_hsl(var(--primary)/0.76)]">
+              <UserPlus className="h-7 w-7" />
+            </div>
+            <CardTitle className="mt-6 text-4xl sm:text-5xl">Create your account</CardTitle>
+            <CardDescription>Choose your role and step into the redesigned experience.</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive animate-scale-in">
+              <div className="mb-4 rounded-[1.3rem] border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
                 {error}
               </div>
             )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Full name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
+                    placeholder="Jordan Rivers"
+                    className="pl-11"
                     required
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
+                    className="pl-11"
                     required
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 6 characters"
-                    className="pl-10 transition-shadow focus:shadow-md focus:shadow-primary/10"
+                    placeholder="Minimum 6 characters"
+                    className="pl-11"
                     required
                     minLength={6}
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="role">I want to</Label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setRole("student")}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
+                    className={`rounded-[1.5rem] border p-4 text-left transition-all ${
                       role === "student"
-                        ? "border-primary bg-primary/5 text-primary shadow-sm"
-                        : "border-border text-muted-foreground hover:border-primary/30 hover:bg-accent"
+                        ? "border-primary/20 bg-primary/10 shadow-[0_18px_42px_-30px_hsl(var(--primary)/0.35)]"
+                        : "border-white/80 bg-white/75 hover:border-primary/15"
                     }`}
                   >
                     <GraduationCap className={`h-6 w-6 ${role === "student" ? "text-primary" : "text-muted-foreground"}`} />
-                    Learn
+                    <p className="mt-4 text-base font-semibold text-foreground">Learn</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Browse courses, track progress, and use the AI tutor inside the study flow.
+                    </p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setRole("instructor")}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
+                    className={`rounded-[1.5rem] border p-4 text-left transition-all ${
                       role === "instructor"
-                        ? "border-primary bg-primary/5 text-primary shadow-sm"
-                        : "border-border text-muted-foreground hover:border-primary/30 hover:bg-accent"
+                        ? "border-primary/20 bg-primary/10 shadow-[0_18px_42px_-30px_hsl(var(--primary)/0.35)]"
+                        : "border-white/80 bg-white/75 hover:border-primary/15"
                     }`}
                   >
-                    <GraduationCap className={`h-6 w-6 ${role === "instructor" ? "text-primary" : "text-muted-foreground"}`} />
-                    Teach
+                    <Compass className={`h-6 w-6 ${role === "instructor" ? "text-primary" : "text-muted-foreground"}`} />
+                    <p className="mt-4 text-base font-semibold text-foreground">Teach</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Build courses, manage lesson structure, and operate inside the creator workspace.
+                    </p>
                   </button>
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30">
+
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                    Creating Account...
+                    Creating account...
                   </span>
-                ) : "Create Account"}
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Create account
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                )}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="justify-center border-t py-4">
+          <CardFooter className="justify-center border-t border-border/70 pt-6">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <a href="/auth/login" className="font-medium text-primary hover:underline underline-offset-4">
-                Sign In
+              <a href="/auth/login" className="font-semibold text-primary hover:text-foreground">
+                Sign in
               </a>
             </p>
           </CardFooter>
+        </Card>
+
+        <Card className="overflow-hidden bg-[linear-gradient(145deg,hsl(var(--secondary)),hsl(var(--card)))]">
+          <CardContent className="flex h-full flex-col justify-between p-8 sm:p-10">
+            <div>
+              <BrandLogo className="mb-6" />
+              <Badge variant="secondary">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+                New Lunexa identity
+              </Badge>
+              <h1 className="mt-6 max-w-lg font-display text-5xl leading-[0.9] text-foreground sm:text-6xl">
+                Start with an onboarding flow that feels noticeably newer.
+              </h1>
+              <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
+                The updated interface now carries through the catalog, lessons, profile setup, instructor tools, and admin view with one coherent product story.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {[
+                "Sharper typography and a cooler premium palette",
+                "Cleaner dashboards for students, instructors, and admins",
+                "Integrated AI recommendation and lesson quiz moments",
+              ].map((item) => (
+                <div key={item} className="rounded-[1.4rem] border border-white/80 bg-white/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
