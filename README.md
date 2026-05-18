@@ -135,9 +135,101 @@ POSTGRES_USER=lms_user
 POSTGRES_PASSWORD=lms_password
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
+MINIO_ENDPOINT=http://minio:9000
+MINIO_PUBLIC_URL=http://localhost:9000
+MINIO_BUCKET=lms-media
+
+# ─── STRIPE PAYMENTS (required for paid courses) ───────────────────────────
+# Use the full secret key copied from the Stripe dashboard.
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+# Local webhook signing secret from `stripe listen --forward-to ...`
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_CURRENCY=usd
+FRONTEND_BASE_URL=http://localhost
 ```
 
 > **Security Notice:** The defaults work out-of-the-box for local development. Before deploying to any shared or public environment, replace all placeholder credentials and secrets with strong, randomly-generated values.
+
+### Stripe Payments
+
+Paid course checkout uses Stripe Checkout.
+
+**Required environment variables:**
+
+```dotenv
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CURRENCY=usd
+FRONTEND_BASE_URL=http://localhost
+```
+
+**Important:**
+
+- Use the full secret key copied from Stripe. Do not paste a shortened value ending with `...`.
+- `pk_test_...` is the publishable key and is not valid for backend checkout creation.
+- `rk_test_...` is a restricted key and is not used by the current checkout backend.
+
+**Local webhook setup with Stripe CLI:**
+
+```bash
+stripe listen --forward-to http://localhost/api/courses/payments/stripe/webhook
+```
+
+Windows PowerShell helper:
+
+```powershell
+./scripts/stripe-listen.ps1
+```
+
+Copy the printed `whsec_...` value into `.env` as `STRIPE_WEBHOOK_SECRET`, then rebuild or restart `course-service`.
+
+**Why the Stripe dashboard says `Invalid URL`:**
+
+- Stripe Dashboard event destinations do not accept `localhost` URLs like `http://localhost/api/courses/payments/stripe/webhook`.
+- For local development, use Stripe CLI forwarding instead of creating a dashboard destination.
+- If you want to use the Stripe dashboard, you must provide a publicly reachable `https://...` webhook URL.
+
+Examples:
+
+- Local development: `stripe listen --forward-to http://localhost/api/courses/payments/stripe/webhook`
+- Public deployment: `https://your-domain/api/courses/payments/stripe/webhook`
+
+The payment flow uses these endpoints:
+
+- `POST /api/courses/{course_id}/checkout/stripe`
+- `GET /api/courses/{course_id}/checkout/stripe/session/{session_id}`
+- `POST /api/courses/payments/stripe/webhook`
+
+### MinIO Media Uploads
+
+Course thumbnails and lesson video uploads can be stored in MinIO and then referenced by the LMS UI.
+
+**Relevant environment variables:**
+
+```dotenv
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+MINIO_ENDPOINT=http://minio:9000
+MINIO_PUBLIC_URL=http://localhost:9000
+MINIO_BUCKET=lms-media
+```
+
+The course service exposes:
+
+- `POST /api/courses/media/upload`
+
+Supported upload kinds:
+
+- `course_thumbnail`
+- `lesson_video`
+
+The upload endpoint automatically creates the bucket when needed, applies a public-read policy for uploaded objects, and returns a direct object URL that can be stored in `thumbnail_url` or `video_url`.
+
+Windows PowerShell smoke test:
+
+```powershell
+./scripts/minio-smoke-test.ps1
+```
 
 ### Running with Docker (Recommended)
 
@@ -973,3 +1065,4 @@ feedback  { user_id, course_id, type, message, rating, status, created_at }
 ---
 
 > Developed as part of the **Master DevOps & Cloud — M1** Skills Integration Project.
+# Micro-project
